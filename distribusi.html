@@ -2,47 +2,653 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ElectraSim · Distribusi 20 kV / 220 V</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ElectraSim · Konstruksi Distribusi 20 kV</title>
 <style>
   :root{
-    --bg:#0b0e12;--panel:rgba(11,15,20,.82);--line:#2c3848;
-    --amber:#ffb020;--cyan:#36d1dc;--green:#3ce07a;--txt:#eaf0f6;--dim:#9aa7b6;
+    --bg:#0b0e12;--panel:rgba(12,16,22,.86);--line:#2c3848;
+    --amber:#ffb020;--cyan:#36d1dc;--green:#3ce07a;--red:#ff4d4d;--txt:#eaf0f6;--dim:#9aa7b6;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   }
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%}
-  body{background:radial-gradient(120% 120% at 50% 22%,#1a2438 0%,#0b0a12 72%);color:var(--txt);
-    font-family:var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:28px;min-height:100vh;overflow-y:auto}
-  .ey{font-size:11px;letter-spacing:.3em;color:var(--cyan);font-weight:700}
-  h1{font-size:clamp(28px,6vw,48px);font-weight:800;margin:12px 0 6px;letter-spacing:-.02em}
-  h1 span{color:var(--cyan)}
-  p{color:#b9c2cd;max-width:480px;font-size:14px;line-height:1.65;margin-bottom:8px}
-  .ico{font-size:64px;margin-bottom:8px;filter:drop-shadow(0 4px 14px rgba(54,209,220,.35))}
-  .badge{margin:18px 0 26px;font-family:var(--mono);font-size:12px;color:var(--amber);
-    border:1px dashed #5a4a20;border-radius:999px;padding:8px 20px;letter-spacing:.12em}
-  .feat{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:560px;margin-bottom:30px}
-  .feat .f{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;
-    padding:12px 16px;font-size:12.5px;color:#cbd5e0;min-width:150px;text-align:left;line-height:1.5}
-  .feat .f b{display:block;color:var(--txt);font-size:13px;margin-bottom:3px}
-  .back{font-family:var(--mono);font-size:13px;border:1px solid var(--cyan);color:var(--cyan);
-    padding:12px 28px;border-radius:10px;font-weight:700;text-decoration:none;transition:.15s}
-  .back:hover{background:rgba(54,209,220,.12)}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--txt);user-select:none}
+  #c{display:block;width:100vw;height:100vh}
+  .hud{position:fixed;pointer-events:none;z-index:5}
+
+  #tele{top:12px;left:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;min-width:206px;backdrop-filter:blur(8px)}
+  #tele .ttl{font-size:10px;letter-spacing:.16em;color:var(--dim);font-weight:700;margin-bottom:7px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:3px 0}
+  .row .k{font-size:11px;color:var(--dim)}.row .v{font-family:var(--mono);font-size:14px;font-weight:600}
+  #progWrap{margin-top:8px;height:8px;background:#161d27;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  #progBar{height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .45s}
+  #stat{margin-top:8px;display:flex;align-items:center;gap:8px}
+  #statDot{width:9px;height:9px;border-radius:50%;background:var(--dim)}#statTxt{font-family:var(--mono);font-size:12px;font-weight:700}
+
+  #miss{top:12px;right:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px;width:258px;max-height:46vh;overflow:auto;backdrop-filter:blur(8px)}
+  #miss::-webkit-scrollbar{width:5px}#miss::-webkit-scrollbar-thumb{background:#1d3458;border-radius:6px}
+  #miss .ttl{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:700;margin-bottom:8px}
+  .task{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:12px;line-height:1.3;color:var(--dim)}
+  .task .bx{flex:0 0 16px;height:16px;border:1.5px solid var(--line);border-radius:4px;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent}
+  .task.cur{color:var(--txt)}.task.cur .bx{border-color:var(--amber)}.task.done{color:var(--txt)}.task.done .bx{border-color:var(--green);color:var(--green)}
+  .task .nm{font-weight:600}.task.cur .nm{color:var(--amber)}
+
+  #stepcard{bottom:128px;left:50%;transform:translateX(-50%);width:min(560px,94vw);background:var(--panel);border:1px solid var(--amber);border-radius:14px;padding:12px 15px;backdrop-filter:blur(10px);display:none}
+  #stepcard .sc-h{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  #stepcard .sc-no{font-family:var(--mono);font-size:11px;font-weight:800;color:#06140b;background:var(--amber);border-radius:7px;padding:3px 8px}
+  #stepcard .sc-nm{font-size:15px;font-weight:800}
+  #stepcard .sc-fn{font-size:12px;color:#c4d0dd;line-height:1.45;margin-bottom:8px}
+  #stepcard .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  #stepcard .sc-box{background:#10161f;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  #stepcard .sc-lbl{font-size:9px;letter-spacing:.1em;font-weight:700;margin-bottom:4px}
+  #stepcard .sc-lbl.b{color:var(--cyan)}#stepcard .sc-lbl.a{color:var(--green)}
+  #stepcard .sc-li{font-size:11px;color:#cdd6e0;line-height:1.5}
+  #stepcard .sc-tip{font-size:11px;color:var(--amber);margin-top:7px;line-height:1.4}
+
+  #toast{bottom:70px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 15px;font-size:12px;font-weight:600;opacity:0;transition:.25s;text-align:center;max-width:84vw;backdrop-filter:blur(8px)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.bad{border-color:var(--red);color:#ffd0d0}#toast.good{border-color:var(--green);color:#d3ffe4}
+  #sub{bottom:26px;left:50%;transform:translateX(-50%);max-width:min(720px,92vw);text-align:center;font-size:14px;line-height:1.4;color:#fff;text-shadow:0 2px 10px #000;font-weight:600;opacity:0;transition:.2s;pointer-events:none}
+  #sub.show{opacity:1}#sub .who{display:block;font-size:9px;letter-spacing:.18em;color:var(--cyan);font-weight:700;margin-bottom:3px}
+
+  /* action zone */
+  #actWrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:none;flex-direction:column;align-items:center;gap:9px}
+  #doBtn{position:relative;overflow:hidden;background:linear-gradient(180deg,#ffc341,#ff9e16);border:none;color:#241400;font-weight:800;font-size:15px;padding:15px 30px;border-radius:14px;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.35);font-family:var(--sans);max-width:92vw;transition:.15s}
+  #doBtn:active{transform:scale(.97)}
+  #doBtn.dis{background:#222a35;color:#73808f;box-shadow:none;cursor:default}
+  #doBtn .fill{position:absolute;inset:0;background:rgba(255,255,255,.35);width:0%;pointer-events:none}
+  .climbrow{display:flex;gap:8px}
+  .climbrow button{background:var(--panel);border:1px solid var(--cyan);color:var(--cyan);font-weight:700;font-size:13px;padding:10px 16px;border-radius:11px;cursor:pointer;backdrop-filter:blur(8px);min-width:74px}
+  .climbrow button:active{transform:scale(.96)}
+  .climbrow button.dis{border-color:var(--line);color:#5a6675}
+
+  .btnbar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+  .btnbar button{background:var(--panel);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px 11px;border-radius:10px;cursor:pointer;backdrop-filter:blur(8px)}
+  .btnbar button:hover{border-color:var(--amber);color:var(--amber)}
+
+  .touch{position:fixed;z-index:7;pointer-events:auto;display:none}
+  #joy{bottom:18px;left:18px;width:118px;height:118px;border-radius:50%;background:rgba(20,26,34,.4);border:1px solid var(--line)}
+  #joyKnob{position:absolute;top:50%;left:50%;width:46px;height:46px;border-radius:50%;background:rgba(255,176,32,.85);transform:translate(-50%,-50%)}
+
+  /* quiz modal */
+  #quiz{position:fixed;inset:0;z-index:16;background:rgba(6,9,14,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+  #quizCard{background:#10161f;border:1px solid var(--amber);border-radius:16px;padding:20px 22px;max-width:460px;width:100%}
+  #quizCard .qtag{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:800}
+  #quizCard h3{font-size:17px;margin:6px 0 4px;line-height:1.3}
+  #quizCard .qhint{font-size:12px;color:var(--dim);margin-bottom:14px}
+  .qopt{display:block;width:100%;text-align:left;background:#161d27;border:1px solid var(--line);color:var(--txt);font-size:14px;font-weight:600;padding:13px 15px;border-radius:11px;margin:8px 0;cursor:pointer;transition:.12s;font-family:var(--sans)}
+  .qopt:hover{border-color:var(--cyan)}
+  .qopt.ok{border-color:var(--green);background:rgba(60,224,122,.12)}
+  .qopt.no{border-color:var(--red);background:rgba(255,77,77,.1)}
+
+  .overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow-y:auto}
+  #start{background:radial-gradient(120% 120% at 50% 22%,#1d2a3a 0%,#0a0d13 72%)}
+  #start .ey{font-size:11px;letter-spacing:.26em;color:var(--amber);font-weight:700}
+  #start h1{font-size:clamp(24px,5.5vw,42px);font-weight:800;margin:9px 0 4px}#start h1 span{color:var(--amber)}
+  #start p{color:#b9c2cd;max-width:490px;font-size:14px;line-height:1.55;margin-bottom:20px}
+  .go{font-family:var(--sans);font-size:14px;border:none;background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400;padding:14px 30px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.3)}
+  .go:active{transform:scale(.98)}
+  #start .keys{margin-top:16px;font-size:11px;color:var(--dim);font-family:var(--mono);line-height:1.7}
+  #start .backlink{margin-top:18px;font-size:12px;color:var(--cyan);font-family:var(--mono);text-decoration:none;border:1px solid #244c55;border-radius:8px;padding:8px 16px}
+  #start .backlink:hover{background:rgba(54,209,220,.1)}
+
+  #apd{background:radial-gradient(120% 120% at 50% 30%,#15223a 0%,#0a0d13 72%);display:none}
+  #apd h2{font-size:clamp(19px,4.5vw,28px);font-weight:800;margin-bottom:3px}
+  #apd .ah{color:#aab6c4;font-size:13px;max-width:460px;margin-bottom:16px;line-height:1.45}
+  .equip{display:flex;gap:24px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0 14px}
+  .pool{display:flex;flex-direction:column;gap:8px;width:250px}
+  .apd-item{display:flex;align-items:center;gap:11px;background:#11161d;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;text-align:left}
+  .apd-item .ic{font-size:21px;width:25px;text-align:center}
+  .apd-item small{display:block;color:var(--dim);font-weight:400;font-size:10.5px;margin-top:2px;line-height:1.25}
+  .apd-item:hover{border-color:var(--cyan)}.apd-item.done{opacity:.5;border-color:var(--green);pointer-events:none}
+  .apd-item.done .chk{margin-left:auto;color:var(--green);font-family:var(--mono)}
+  .avatar{position:relative;width:170px;height:264px;border:1px dashed #34404c;border-radius:16px;background:radial-gradient(80% 70% at 50% 38%,rgba(54,209,220,.06),transparent);display:flex;align-items:center;justify-content:center}
+  .avatar .part{fill:#39424e;stroke:#10151b;stroke-width:1.5;transition:fill .25s,filter .25s}
+  .avatar .part.on{fill:var(--green);filter:drop-shadow(0 0 5px rgba(60,224,122,.5))}
+  .avatar #pHelm.on{fill:var(--amber)}.avatar #pEyes.on{fill:#bfe9ff}.avatar #pBody.on{fill:#ff8c1a}
+  #apdGo{display:none;margin-top:2px}
+
+  #win{background:radial-gradient(120% 120% at 50% 30%,#10331f 0%,#0a0d13 75%);display:none}
+  #win h2{font-size:clamp(22px,5vw,34px);font-weight:800;color:var(--green);margin-bottom:6px}
+  #win p{color:#bcd;max-width:440px;font-size:14px;line-height:1.55;margin-bottom:8px}
+  #win .stats{font-family:var(--mono);font-size:13px;margin:8px 0 16px;line-height:1.9}
+  #win .backlink{margin-top:10px;font-size:12px;color:var(--cyan);font-family:var(--mono);text-decoration:none;border:1px solid #244c55;border-radius:8px;padding:8px 16px}
+
+  #insight{position:fixed;inset:0;z-index:18;background:rgba(6,9,14,.95);display:none;flex-direction:column;padding:24px;overflow-y:auto}
+  #insight h2{font-size:19px;letter-spacing:.08em;color:var(--amber);margin-bottom:3px}
+  #insight .isub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px;max-width:1040px}
+  .ins-d{background:#10161f;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .ins-d b{font-size:13px}.ins-d .tag{font-size:9px;letter-spacing:.1em;color:var(--cyan);border:1px solid #244c55;border-radius:20px;padding:1px 7px;margin-left:6px}
+  .ins-d p{font-size:11.5px;color:#b6c2d0;line-height:1.45;margin-top:6px}
+  .ins-d .ab{margin-top:6px;font-size:11px;line-height:1.5}.ins-d .ab .l{color:var(--green);font-weight:700}.ins-d .ab .l2{color:var(--cyan);font-weight:700}
+  #insight .clo{position:absolute;top:18px;right:22px;font-family:var(--mono);border:1px solid var(--line);color:var(--txt);background:#11161d;border-radius:8px;padding:8px 14px;cursor:pointer}
 </style>
 </head>
 <body>
-  <div class="ico">🏘️⚡</div>
-  <div class="ey">ELECTRASIM · TAHAP 3</div>
-  <h1>JARINGAN <span>DISTRIBUSI</span></h1>
-  <p>Modul distribusi 20 kV menengah hingga sambungan rumah 220 V — penyulang (feeder),
-     trafo distribusi, gardu portal, dan pengelolaan beban pelanggan.</p>
-  <div class="badge">⏳ SEGERA HADIR — DALAM PENGEMBANGAN</div>
-  <div class="feat">
-    <div class="f"><b>Penyulang 20 kV</b>Rute feeder, recloser, dan pemulihan gangguan jaringan.</div>
-    <div class="f"><b>Trafo Distribusi</b>Step-down 20 kV → 380/220 V, pembebanan & rugi-rugi.</div>
-    <div class="f"><b>Sambungan Pelanggan</b>Manajemen beban rumah, industri, dan kualitas tegangan.</div>
+<canvas id="c"></canvas>
+
+<div class="btnbar">
+  <button onclick="location.href='index.html'">‹ MENU</button>
+  <button id="bInsight">📚 ALAT & BAHAN</button>
+  <button id="bCam">🎥 KAMERA</button>
+  <button id="bMute">🔊</button>
+  <button id="bReset">⟳ ULANG</button>
+</div>
+
+<div class="hud" id="tele">
+  <div class="ttl">ELECTRASIM · DISTRIBUSI 20 kV</div>
+  <div class="row"><span class="k">Ketinggian</span><span class="v" id="vH">0,0 m</span></div>
+  <div class="row"><span class="k">Progres</span><span class="v" id="vP">0 / 7</span></div>
+  <div id="progWrap"><div id="progBar"></div></div>
+  <div id="stat"><span id="statDot"></span><span id="statTxt">SIAP</span></div>
+</div>
+
+<div class="hud" id="miss">
+  <div class="ttl">LEMBAR KERJA · TIANG SUTM 20 kV</div>
+  <div id="taskList"></div>
+</div>
+
+<div class="hud" id="stepcard">
+  <div class="sc-h"><span class="sc-no" id="scNo">1</span><span class="sc-nm" id="scNm">—</span></div>
+  <div class="sc-fn" id="scFn"></div>
+  <div class="sc-grid">
+    <div class="sc-box"><div class="sc-lbl b">🧰 ALAT</div><div class="sc-li" id="scAlat"></div></div>
+    <div class="sc-box"><div class="sc-lbl a">📦 BAHAN</div><div class="sc-li" id="scBahan"></div></div>
   </div>
-  <a class="back" href="index.html">‹ KEMBALI KE MENU</a>
+  <div class="sc-tip" id="scTip"></div>
+</div>
+
+<div class="hud" id="toast"></div>
+<div class="hud" id="sub"><span class="who">INSTRUKTUR</span><span id="subTxt"></span></div>
+
+<div id="actWrap">
+  <button id="doBtn"><span class="fill" id="doFill"></span><span id="doTxt">▶ KERJAKAN</span></button>
+  <div class="climbrow"><button id="panjatBtn">🧗 PANJAT</button><button id="upBtn">▲ NAIK</button><button id="dnBtn">▼ TURUN</button></div>
+</div>
+
+<div class="touch" id="joy"><div id="joyKnob"></div></div>
+
+<!-- quiz -->
+<div id="quiz"><div id="quizCard">
+  <div class="qtag" id="qTag">KUIS LANGKAH</div>
+  <h3 id="qQ">—</h3>
+  <div class="qhint">Jawab benar untuk melanjutkan pemasangan.</div>
+  <div id="qOpts"></div>
+</div></div>
+
+<!-- start -->
+<div class="overlay" id="start">
+  <div class="ey">PT PLN · SIMULATOR KONSTRUKSI DISTRIBUSI</div>
+  <h1>ELECTRASIM <span>DISTRIBUSI</span></h1>
+  <p>Jadilah <b>petugas distribusi</b>! Kenakan APD, lalu kerjakan konstruksi <b>SUTM 20 kV</b> secara <b>manual</b>: jalan ke tiang, <b>panjat sendiri</b>, jawab <b>kuis</b> tiap langkah, dan <b>tahan tombol</b> untuk memasang komponen. Setiap langkah mengajarkan alat, bahan & fungsinya.</p>
+  <button class="go" id="startBtn">▶ MULAI</button>
+  <div class="keys">Jalan: <b>WASD</b>/joystick · Kamera: <b>seret layar</b> · Panjat: <b>Spasi</b>, lalu <b>W/S</b> · Kerja: tahan <b>E</b> / tombol</div>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<!-- apd -->
+<div class="overlay" id="apd">
+  <h2>BRIEFING K3 — KENAKAN APD</h2>
+  <div class="ah">Klik tiap <b>Alat Pelindung Diri</b> untuk memakainya. Bekerja di ketinggian & dekat tegangan menengah <b>wajib</b> APD lengkap.</div>
+  <div class="equip">
+    <div class="pool" id="apdPool"></div>
+    <div class="avatar">
+      <svg viewBox="0 0 120 200" width="148" height="244">
+        <ellipse class="part" id="pBoots" cx="60" cy="188" rx="30" ry="9"/>
+        <rect class="part" id="pBody" x="40" y="92" width="40" height="74" rx="10"/>
+        <rect class="part" id="pHarness" x="44" y="100" width="32" height="58" rx="7" fill="#2a3038"/>
+        <circle class="part" id="pHead" cx="60" cy="64" r="22"/>
+        <path class="part" id="pHelm" d="M36 60 a24 22 0 0 1 48 0 z"/>
+        <rect class="part" id="pEyes" x="48" y="58" width="24" height="7" rx="3" fill="#2a3038"/>
+        <rect class="part" id="pGlovesL" x="26" y="120" width="14" height="20" rx="6"/>
+        <rect class="part" id="pGlovesR" x="80" y="120" width="14" height="20" rx="6"/>
+      </svg>
+    </div>
+  </div>
+  <button class="go" id="apdGo">✔ APD LENGKAP — MULAI KONSTRUKSI</button>
+</div>
+
+<div class="overlay" id="win">
+  <h2>✔ JARINGAN BERTEGANGAN</h2>
+  <p id="winMsg">Konstruksi SUTM 20 kV selesai & energize berhasil. Listrik mengalir ke pelanggan!</p>
+  <div class="stats" id="winStats"></div>
+  <button class="go" id="winBtn">⟳ ULANGI LATIHAN</button>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<div id="insight">
+  <button class="clo" id="insClose">TUTUP ✕</button>
+  <h2>BUKU SAKU · ALAT, BAHAN & KOMPONEN</h2>
+  <div class="isub">Komponen konstruksi tiang SUTM 20 kV beserta alat & bahan — referensi edukatif.</div>
+  <div class="ins-grid" id="insGrid"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0;
+
+const STEPS=[
+  {id:'travers', nm:'Pasang Travers (Cross-arm)', tag:'BESI', workH:8.0,
+   fn:'Travers besi UNP dipasang melintang di puncak tiang sebagai dudukan isolator; menahan beban mekanis konduktor 3 fasa.',
+   alat:['Kunci pas/ring 17-19','Kunci momen','Tali tackle (katrol)'],
+   bahan:['Travers UNP 10×100','Mur-baut + ring','Klem beugel / mur tiang'],
+   tip:'Pasang tegak lurus arah saluran, kencangkan sesuai momen torsi.',
+   q:'Komponen apa yang dipasang melintang di puncak tiang sebagai dudukan isolator?',
+   opt:['Travers (cross-arm) UNP','Lightning arrester','Ground rod'], ans:0},
+  {id:'isolator', nm:'Pasang Isolator Tumpu 3φ', tag:'ISOLASI', workH:8.2,
+   fn:'Isolator pin-post 20 kV menyangga konduktor dan mengisolasinya dari travers. Tipe tumpu untuk tiang lurus.',
+   alat:['Kunci pas','Lap bersih'],
+   bahan:['3× Isolator tumpu 20 kV','Pin isolator + mur'],
+   tip:'Fasa R-S-T. Pastikan keramik bersih & tidak retak.',
+   q:'Apa fungsi utama isolator tumpu pada tiang?',
+   opt:['Menyalurkan arus ke tanah','Menyangga & mengisolasi konduktor','Memutus arus gangguan'], ans:1},
+  {id:'konduktor', nm:'Tarik Konduktor A3CS/AAAC', tag:'PENGHANTAR', workH:8.2,
+   fn:'Penghantar SUTM 20 kV (AAAC/A3CS). Tiga fasa direntang antar tiang dengan andongan (sag) sesuai standar.',
+   alat:['Tirfor / come-along','Katrol penarik','Dinamometer (ukur tarikan)'],
+   bahan:['Konduktor AAAC/A3CS 3 fasa','Sambungan (joint sleeve)'],
+   tip:'Atur andongan (sag) sesuai suhu & panjang bentang.',
+   q:'Penghantar SUTM 20 kV yang umum dipakai adalah…',
+   opt:['Kabel NYA','AAAC / A3CS','Kawat BC telanjang'], ans:1},
+  {id:'pengikat', nm:'Ikat Konduktor ke Isolator', tag:'PENGIKAT', workH:8.2,
+   fn:'Kawat pengikat (binding)/preformed mengikat konduktor ke alur isolator agar tidak lepas.',
+   alat:['Tang kombinasi','Sarung tangan'],
+   bahan:['Kawat pengikat / preformed tie','Armor rod (bila perlu)'],
+   tip:'Tiang sudut pakai ikatan ganda / isolator tarik.',
+   q:'Untuk apa kawat pengikat (binding) dipasang?',
+   opt:['Mengikat konduktor ke isolator','Menyambung dua travers','Menanam elektroda bumi'], ans:0},
+  {id:'proteksi', nm:'Pasang Arrester (LA) & FCO', tag:'PROTEKSI', workH:7.0,
+   fn:'Lightning Arrester melindungi dari surja petir/switching. FCO sebagai pengaman lebur & pemutus percabangan/trafo.',
+   alat:['Kunci pas','Stick 20 kV (hot stick)'],
+   bahan:['3× Arrester 20 kV','Fuse Cut Out + fuse link','Kawat penghubung arrester'],
+   tip:'Arrester dipasang sedekat mungkin dengan peralatan yang dilindungi.',
+   q:'Peralatan yang melindungi jaringan dari surja petir adalah…',
+   opt:['Fuse Cut Out (FCO)','Lightning Arrester (LA)','Travers UNP'], ans:1},
+  {id:'grounding', nm:'Pasang Pentanahan (Grounding)', tag:'PENTANAHAN', workH:0,
+   fn:'Kawat BC dihubungkan ke elektroda (ground rod) yang ditanam, menyalurkan arus gangguan/petir ke tanah.',
+   alat:['Linggis / bor tanah','Earth tester (ukur tahanan)','Kunci pas'],
+   bahan:['Kawat BC 50 mm²','Ground rod (batang arde) 2,4 m','Klem grounding'],
+   tip:'Tahanan pentanahan harus ≤ 5 Ω.',
+   q:'Berapa nilai tahanan pentanahan yang umumnya disyaratkan?',
+   opt:['≤ 5 Ω','≤ 50 Ω','≥ 100 Ω'], ans:0},
+  {id:'energize', nm:'Komisioning & Energize', tag:'ENERGIZE', workH:7.0,
+   fn:'Uji tahanan isolasi & pentanahan, lepas grounding lokal kerja, pastikan jaringan bebas petugas, lalu masukkan FCO/PMT.',
+   alat:['Stick 20 kV telescopic','Insulation tester (megger)','Voltage detector'],
+   bahan:['—'],
+   tip:'Konfirmasi "bebas tegangan" → "siap energize" ke pengawas pekerjaan.',
+   q:'Sebelum energize, hal yang WAJIB dipastikan adalah…',
+   opt:['Cuaca cerah & tiang kering','Pentanahan OK & jaringan bebas petugas','Cat tiang sudah kering'], ans:1}
+];
+const APD=[
+  {id:'helm',ic:'⛑️',nm:'Helm Pengaman',fn:'Lindungi kepala dari benturan & benda jatuh.',part:'pHelm'},
+  {id:'kacamata',ic:'🥽',nm:'Kacamata Safety',fn:'Lindungi mata dari percikan, busur & debu.',part:'pEyes'},
+  {id:'sarung',ic:'🧤',nm:'Sarung Tangan 20 kV',fn:'Sarung tangan isolasi sesuai kelas tegangan.',part:'pGlovesL'},
+  {id:'sepatu',ic:'🥾',nm:'Sepatu Safety 20 kV',fn:'Sepatu dielektrik, lindungi dari kejut & benda jatuh.',part:'pBoots'},
+  {id:'harness',ic:'🦺',nm:'Full Body Harness',fn:'Pengaman jatuh; wajib dikaitkan saat di ketinggian.',part:'pBody'},
+];
+
+let renderer,scene,camera,clock;
+const canvas=$('c');
+const POLE={x:0,z:0,top:9.4};
+let char,charParts={},charShadow=null;
+let charPos={x:6,z:6}, charY=0, charYaw=Math.PI;
+let camYaw=Math.PI, camPitch=0.40, camDist=9;
+let curStep=0, started=false, muted=false;
+let attached=false;            // di tiang?
+let work={state:'idle',prog:0};// idle|ready|holding
+let eHeld=false, btnHeld=false, walkPhase=0, moving=false;
+const keys={};
+let comp={}, ghost={}, conductors=[], lamp=null, fxList=[], targetBand=null;
+
+/* ---------- textures ---------- */
+function tex(draw,rep){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');draw(x);const t=new THREE.CanvasTexture(c);if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);}return t;}
+function grassTex(){return tex(x=>{x.fillStyle='#5d7e45';x.fillRect(0,0,128,128);for(let i=0;i<900;i++){x.fillStyle=`rgba(${40+Math.random()*40},${90+Math.random()*60},${40+Math.random()*40},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,3);}},40);}
+function asphaltTex(){return tex(x=>{x.fillStyle='#34373d';x.fillRect(0,0,128,128);for(let i=0;i<1400;i++){const g=30+Math.random()*40;x.fillStyle=`rgba(${g},${g},${g+4},.6)`;x.fillRect(Math.random()*128,Math.random()*128,1.4,1.4);}},1);}
+function concreteTex(){return tex(x=>{x.fillStyle='#c4cace';x.fillRect(0,0,128,128);for(let i=0;i<700;i++){const g=150+Math.random()*70;x.fillStyle=`rgba(${g},${g},${g},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,2);}for(let i=0;i<10;i++){x.strokeStyle='rgba(120,125,130,.25)';x.beginPath();x.moveTo(Math.random()*128,0);x.lineTo(Math.random()*128,128);x.stroke();}},1);}
+function skyTex(){const c=document.createElement('canvas');c.width=16;c.height=256;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#3f78c0');g.addColorStop(.5,'#86b4e0');g.addColorStop(1,'#dCeaf6');x.fillStyle=g;x.fillRect(0,0,16,256);return new THREE.CanvasTexture(c);}
+
+function init(){
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0xbcd4ea,55,180);
+  camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.05,500);clock=new THREE.Clock();
+  // sky dome
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(260,24,16),new THREE.MeshBasicMaterial({map:skyTex(),side:THREE.BackSide,fog:false}));scene.add(sky);
+  // lights
+  scene.add(new THREE.HemisphereLight(0xcfe2ff,0x5a6648,0.75));
+  const sun=new THREE.DirectionalLight(0xfff1d8,1.25);sun.position.set(18,34,16);sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=90;
+  sun.shadow.camera.left=-24;sun.shadow.camera.right=24;sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;sun.shadow.bias=-0.0004;
+  scene.add(sun);
+  buildWorld();buildPole();buildComponents();buildChar();
+  resize();addEventListener('resize',resize);
+}
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+function mat(c,o={}){return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.82,metalness:.05},o));}
+function box(w,h,d,c,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+function cyl(rt,rb,h,c,seg,o){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||14),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+
+function buildWorld(){
+  const grass=new THREE.Mesh(new THREE.PlaneGeometry(360,360),new THREE.MeshStandardMaterial({map:grassTex(),roughness:1}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;scene.add(grass);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(9,360),new THREE.MeshStandardMaterial({map:asphaltTex(),roughness:1}));road.rotation.x=-Math.PI/2;road.position.set(-6.5,0.02,0);road.receiveShadow=true;scene.add(road);
+  for(let z=-160;z<160;z+=10){const d=new THREE.Mesh(new THREE.PlaneGeometry(0.3,4),mat(0xe3d575,{roughness:1}));d.rotation.x=-Math.PI/2;d.position.set(-6.5,0.03,z);scene.add(d);}
+  for(let i=0;i<10;i++){const z=-78+i*18,hh=3+Math.random()*1.5,hx=-15-Math.random()*4;
+    const house=box(5,hh,5,0xcab79a);house.position.set(hx,hh/2,z);scene.add(house);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(4.2,2,4),mat(0x9a4a3a));roof.position.set(hx,hh+1,z);roof.rotation.y=Math.PI/4;roof.castShadow=true;scene.add(roof);
+    const win=box(0.9,0.9,0.05,0x9fd6e8,{emissive:0x335566,emissiveIntensity:.2});win.position.set(hx+2.55,hh*0.5,z);scene.add(win);}
+  for(let i=0;i<28;i++){const x=10+Math.random()*46,z=-140+Math.random()*280;
+    const cr=new THREE.Mesh(new THREE.SphereGeometry(1.5+Math.random(),8,7),mat(0x3f6a36));cr.position.set(x,2.1,z);cr.castShadow=true;scene.add(cr);
+    const tr=cyl(0.18,0.24,2,0x5a4030,7);tr.position.set(x,1,z);scene.add(tr);}
+}
+function makePole(x,z,worked){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.23,POLE.top,16),new THREE.MeshStandardMaterial({map:concreteTex(),color:0xcdd2d6,roughness:.92,metalness:.02}));
+  pole.position.y=POLE.top/2;pole.castShadow=true;pole.receiveShadow=true;g.add(pole);
+  const cap=cyl(0.17,0.15,0.18,0xb8bdc1,12);cap.position.y=POLE.top;g.add(cap);
+  if(worked){for(let yy=1;yy<POLE.top-0.6;yy+=0.62){const st=box(0.52,0.045,0.07,0x3a3f47);st.position.set((Math.floor(yy/0.62)%2?0.22:-0.22),yy,0);g.add(st);}}
+  g.position.set(x,0,z);scene.add(g);return g;
+}
+function buildPole(){
+  makePole(0,0,true);
+  [-22,22].forEach(nx=>{makePole(nx,0,false);
+    // existing arms+insulators on neighbours for continuity
+    const t=box(0.09,0.09,2.4,0x6a7078);t.position.set(nx,POLE.top-0.45,0);scene.add(t);
+    [-1,0,1].forEach(z=>{const ins=cyl(0.07,0.1,0.26,0x7a5a36,10);ins.position.set(nx,POLE.top-0.32,z);scene.add(ins);});});
+}
+
+function buildComponents(){
+  // TRAVERS — UNP channel + bracket + bolts
+  const T=new THREE.Group();
+  const back=box(0.10,0.14,2.6,0x7a828a,{metalness:.5,roughness:.45});back.position.set(0,POLE.top-0.45,0);T.add(back);
+  const top=box(0.16,0.04,2.6,0x868e96,{metalness:.5,roughness:.45});top.position.set(0.04,POLE.top-0.38,0);T.add(top);
+  const bot=box(0.16,0.04,2.6,0x868e96,{metalness:.5,roughness:.45});bot.position.set(0.04,POLE.top-0.52,0);T.add(bot);
+  const brace=box(0.06,0.8,0.06,0x6a727a,{metalness:.5});brace.position.set(-0.02,POLE.top-0.9,0);brace.rotation.z=0.0;T.add(brace);
+  [-1,0,1].forEach(z=>{const bolt=cyl(0.03,0.03,0.2,0x4a4f55,8);bolt.rotation.z=Math.PI/2;bolt.position.set(0.12,POLE.top-0.45,z);T.add(bolt);});
+  comp.travers=T;T.visible=false;scene.add(T);
+
+  // ISOLATOR — pin-post with sheds
+  const I=new THREE.Group();[-1,0,1].forEach(z=>{
+    const g=new THREE.Group();
+    const pin=cyl(0.03,0.035,0.18,0x33373c,8);pin.position.y=0.02;g.add(pin);
+    for(let s=0;s<3;s++){const sh=cyl(0.10-s*0.005,0.135-s*0.01,0.05,0x8a6a40,12);sh.position.y=0.14+s*0.085;g.add(sh);}
+    const cap=cyl(0.05,0.07,0.06,0x7a5a36,10);cap.position.y=0.40;g.add(cap);
+    g.position.set(0,POLE.top-0.39,z);I.add(g);});
+  comp.isolator=I;I.visible=false;scene.add(I);
+
+  // KONDUKTOR — catenary tubes (sag)
+  const C=new THREE.Group();const cmat=new THREE.MeshStandardMaterial({color:0x3a3d42,metalness:.7,roughness:.35});
+  [-1,0,1].forEach(z=>{[-22,22].forEach(nx=>{
+    const a=new THREE.Vector3(0,POLE.top-0.05,z),b=new THREE.Vector3(nx,POLE.top-0.32,z);
+    const mid=new THREE.Vector3(nx/2,POLE.top-0.05-Math.abs(nx)/22*1.1,z);
+    const curve=new THREE.QuadraticBezierCurve3(a,mid,b);
+    const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,18,0.035,6,false),cmat);tube.castShadow=true;C.add(tube);conductors.push(tube);
+  });});
+  comp.konduktor=C;C.visible=false;scene.add(C);
+
+  // PENGIKAT
+  const B=new THREE.Group();[-1,0,1].forEach(z=>{const t=new THREE.Mesh(new THREE.TorusGeometry(0.055,0.02,6,12),mat(0xcfcfcf,{metalness:.6}));t.position.set(0,POLE.top-0.30,z);t.rotation.y=Math.PI/2;t.castShadow=true;B.add(t);});
+  comp.pengikat=B;B.visible=false;scene.add(B);
+
+  // PROTEKSI — arrester stacks + FCO
+  const P=new THREE.Group();
+  [-0.5,0,0.5].forEach(z=>{const g=new THREE.Group();for(let s=0;s<4;s++){const d=cyl(0.05,0.05,0.06,0x4a4f55,10);d.position.y=s*0.08;g.add(d);}const lead=cyl(0.012,0.012,0.5,0x886633,6);lead.position.y=-0.3;g.add(lead);g.position.set(0.26,POLE.top-1.7,z);P.add(g);});
+  const fcoIns=cyl(0.05,0.06,0.5,0x7a5a36,10);fcoIns.position.set(0.34,POLE.top-1.15,0);fcoIns.rotation.z=0.4;P.add(fcoIns);
+  const fcoTube=cyl(0.045,0.045,0.6,0x2a2d31,8);fcoTube.position.set(0.42,POLE.top-1.0,0);fcoTube.rotation.z=0.4;P.add(fcoTube);
+  comp.proteksi=P;P.visible=false;scene.add(P);
+
+  // GROUNDING
+  const G=new THREE.Group();const gw=cyl(0.018,0.018,POLE.top-1.6,0xb08030,6);gw.position.set(0.22,(POLE.top-1.6)/2,0);G.add(gw);
+  const clamp=cyl(0.03,0.03,0.06,0xcfcfcf,8);clamp.position.set(0.22,0.3,0);G.add(clamp);
+  const rod=cyl(0.025,0.025,1.2,0xc0992f,6);rod.position.set(0.22,-0.4,0);G.add(rod);
+  comp.grounding=G;G.visible=false;scene.add(G);
+
+  // LAMP
+  const L=new THREE.Group();const la=box(1.0,0.06,0.06,0x555);la.position.set(-0.55,POLE.top-3,0);L.add(la);
+  const hd=box(0.55,0.2,0.32,0x2c2c2c);hd.position.set(-1.05,POLE.top-3,0);L.add(hd);
+  lamp=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,12),new THREE.MeshStandardMaterial({color:0x4a3a18,emissive:0x000000}));lamp.position.set(-1.05,POLE.top-3.13,0);L.add(lamp);
+  scene.add(L);
+  buildGhosts();
+  // target band on pole
+  targetBand=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.04,8,28),new THREE.MeshBasicMaterial({color:0x36d1dc,transparent:true,opacity:.8}));
+  targetBand.rotation.x=Math.PI/2;targetBand.visible=false;scene.add(targetBand);
+}
+function gmat(){return new THREE.MeshBasicMaterial({color:0xffb020,wireframe:true,transparent:true,opacity:0.55});}
+function buildGhosts(){
+  const d={
+    travers:()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.2,2.6),gmat());m.position.set(0,POLE.top-0.45,0);return m;},
+    isolator:()=>{const g=new THREE.Group();[-1,0,1].forEach(z=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.1,0.42,8),gmat());m.position.set(0,POLE.top-0.2,z);g.add(m);});return g;},
+    konduktor:()=>{const g=new THREE.Group();[-1,0,1].forEach(z=>{const m=new THREE.Mesh(new THREE.BoxGeometry(20,0.1,0.1),gmat());m.position.set(0,POLE.top-0.4,z);g.add(m);});return g;},
+    pengikat:()=>{const g=new THREE.Group();[-1,0,1].forEach(z=>{const m=new THREE.Mesh(new THREE.TorusGeometry(0.11,0.03,6,12),gmat());m.position.set(0,POLE.top-0.30,z);m.rotation.y=Math.PI/2;g.add(m);});return g;},
+    proteksi:()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(0.5,1.4,1.4),gmat());m.position.set(0.32,POLE.top-1.5,0);return m;},
+    grounding:()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(0.25,POLE.top-1.4,0.25),gmat());m.position.set(0.22,(POLE.top-1.4)/2,0);return m;},
+    energize:()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(0.4,10,10),gmat());m.position.set(0.4,POLE.top-1.0,0);return m;}
+  };
+  for(const k in d){const m=d[k]();m.visible=false;scene.add(m);ghost[k]=m;}
+}
+
+function buildChar(){
+  char=new THREE.Group();
+  const skin=0xe0a878, vest=0xff8c1a, dark=0x2b2f36, helm=0xffc022, glove=0xf0c040, belt=0x3a2c1a;
+  charParts.legL=box(0.26,0.72,0.26,dark);charParts.legL.position.set(-0.16,0.36,0);char.add(charParts.legL);
+  charParts.legR=box(0.26,0.72,0.26,dark);charParts.legR.position.set(0.16,0.36,0);char.add(charParts.legR);
+  const bootL=box(0.28,0.16,0.34,0x16181c);bootL.position.set(-0.16,0.08,0.04);char.add(bootL);
+  const bootR=box(0.28,0.16,0.34,0x16181c);bootR.position.set(0.16,0.08,0.04);char.add(bootR);
+  const torso=box(0.66,0.74,0.36,vest);torso.position.set(0,1.08,0);char.add(torso);
+  const stripe=box(0.68,0.13,0.38,0xf2f2f2);stripe.position.set(0,1.02,0);char.add(stripe);
+  const beltM=box(0.7,0.12,0.4,belt);beltM.position.set(0,0.74,0);char.add(beltM);
+  const pouch=box(0.16,0.18,0.1,0x241a10);pouch.position.set(0.3,0.7,0.2);char.add(pouch);
+  charParts.armL=new THREE.Group();const aL=box(0.2,0.64,0.2,skin);aL.position.y=-0.32;charParts.armL.add(aL);const gL=box(0.22,0.17,0.24,glove);gL.position.y=-0.68;charParts.armL.add(gL);charParts.armL.position.set(-0.43,1.40,0);char.add(charParts.armL);
+  charParts.armR=new THREE.Group();const aR=box(0.2,0.64,0.2,skin);aR.position.y=-0.32;charParts.armR.add(aR);const gR=box(0.22,0.17,0.24,glove);gR.position.y=-0.68;charParts.armR.add(gR);charParts.armR.position.set(0.43,1.40,0);char.add(charParts.armR);
+  const head=box(0.4,0.42,0.4,skin);head.position.set(0,1.68,0);char.add(head);
+  const face=box(0.18,0.07,0.03,0x2a2d31);face.position.set(0,1.68,0.205);char.add(face);
+  const hat=new THREE.Mesh(new THREE.SphereGeometry(0.27,14,10,0,Math.PI*2,0,Math.PI/2),mat(helm));hat.position.set(0,1.9,0);hat.castShadow=true;char.add(hat);
+  const brim=cyl(0.3,0.3,0.04,helm,16);brim.position.set(0,1.9,0.06);char.add(brim);
+  const strap=box(0.5,0.55,0.02,0x202020);strap.position.set(0,1.05,0.19);char.add(strap);
+  char.position.set(charPos.x,0,charPos.z);scene.add(char);
+  // contact shadow blob
+  charShadow=new THREE.Mesh(new THREE.CircleGeometry(0.45,18),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32}));
+  charShadow.rotation.x=-Math.PI/2;charShadow.position.y=0.02;scene.add(charShadow);
+}
+
+/* ---------- controls ---------- */
+addEventListener('keydown',e=>{keys[e.code]=true;
+  if(e.code==='KeyE'){eHeld=true;onInteract();}
+  if(e.code==='Space'){e.preventDefault();togglePanjat();}
+});
+addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE')eHeld=false;});
+let drag=false,lx=0,ly=0;
+canvas.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;});
+addEventListener('mouseup',()=>drag=false);
+addEventListener('mousemove',e=>{if(drag){camYaw-=(e.clientX-lx)*0.005;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(e.clientY-ly)*0.004));lx=e.clientX;ly=e.clientY;}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.max(4,Math.min(16,camDist+e.deltaY*0.01));},{passive:false});
+
+let joyVec={x:0,y:0},joyId=-1,lookId=-1,lastLook={x:0,y:0};
+const joy=$('joy'),knob=$('joyKnob');
+function setKnob(dx,dy){knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}
+if(isTouch){
+  joy.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;e.preventDefault();},{passive:false});
+  addEventListener('touchstart',e=>{for(const t of e.changedTouches){const r=joy.getBoundingClientRect();const inJ=t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;if(!inJ&&lookId<0&&t.clientX>innerWidth*0.42&&t.clientY<innerHeight*0.72){lookId=t.identifier;lastLook={x:t.clientX,y:t.clientY};}}},{passive:false});
+  addEventListener('touchmove',e=>{for(const t of e.changedTouches){
+    if(t.identifier===joyId){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=t.clientX-cx,dy=t.clientY-cy;const mg=Math.hypot(dx,dy),mx=46;if(mg>mx){dx*=mx/mg;dy*=mx/mg;}setKnob(dx,dy);joyVec={x:dx/mx,y:dy/mx};}
+    else if(t.identifier===lookId){camYaw-=(t.clientX-lastLook.x)*0.006;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(t.clientY-lastLook.y)*0.005));lastLook={x:t.clientX,y:t.clientY};}
+  }e.preventDefault();},{passive:false});
+  addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===joyId){joyId=-1;joyVec={x:0,y:0};setKnob(0,0);}if(t.identifier===lookId)lookId=-1;}});
+}
+
+/* climb */
+function nearPole(){return Math.hypot(charPos.x-POLE.x,charPos.z-POLE.z)<2.4;}
+function togglePanjat(){
+  if(!started)return;
+  if(!attached){ if(nearPole()){attached=true;charPos.x=POLE.x;charPos.z=POLE.z+0.78;charYaw=Math.PI;climbPose(true);setStat('DI TIANG','var(--cyan)');toast('Memanjat. Pakai ▲NAIK/▼TURUN atau W/S.','good');sayInstr('Kait harness ke tiang. Naik perlahan ke ketinggian kerja yang ditandai cincin biru.');} else toast('Dekati tiang dulu untuk memanjat.','bad'); }
+  else { if(charY<0.3){attached=false;charY=0;restPose();setStat('DI TANAH');} else {charY=0;attached=false;restPose();setStat('DI TANAH');toast('Turun ke tanah.','');} }
+}
+function climbStep(d){ if(!attached)return; charY=Math.max(0,Math.min(POLE.top-1.6,charY+d)); if(charY<0.05){attached=false;restPose();setStat('DI TANAH');} else {climbPose(true);setStat('MEMANJAT','var(--cyan)');} }
+$('panjatBtn').addEventListener('click',togglePanjat);
+$('upBtn').addEventListener('click',()=>climbStep(0.9));
+$('dnBtn').addEventListener('click',()=>climbStep(-0.9));
+
+/* interaction / work */
+function curS(){return curStep<STEPS.length?STEPS[curStep]:null;}
+function inPosition(){const s=curS();if(!s)return false;
+  if(s.workH===0){return !attached && nearPole() && charY<0.1;}
+  return attached && Math.abs((charY+1.4)-s.workH)<1.2;
+}
+function onInteract(){ // E pressed (also used to start hold)
+  if(!started)return;
+  if(work.state==='ready'){ /* holding handled in loop via eHeld */ return; }
+  doKerjakan();
+}
+function doKerjakan(){
+  const s=curS();if(!s||work.state!=='idle')return;
+  if(s.id==='energize'&&!isDone('grounding')){toast('⛔ Pasang PENTANAHAN dulu sebelum energize! (K3)','bad');sayInstr('Jangan energize sebelum pentanahan terpasang — syarat keselamatan.');return;}
+  if(!inPosition()){toast(s.workH===0?'Dekati tiang di tanah dulu.':'Naik ke posisi (cincin biru) dulu.','bad');return;}
+  openQuiz(s);
+}
+function isDone(id){return STEPS.findIndex(x=>x.id===id)<curStep;}
+
+/* quiz */
+let quizStep=null;
+function openQuiz(s){quizStep=s;$('qTag').textContent='KUIS · '+s.tag;$('qQ').textContent=s.q;const w=$('qOpts');w.innerHTML='';
+  s.opt.forEach((o,i)=>{const b=document.createElement('button');b.className='qopt';b.textContent=o;b.addEventListener('click',()=>answer(i,b));w.appendChild(b);});
+  $('quiz').style.display='flex';}
+function answer(i,btn){
+  if(i===quizStep.ans){btn.classList.add('ok');sayInstr('Tepat! '+quizStep.fn);setTimeout(()=>{$('quiz').style.display='none';work.state='ready';work.prog=0;toast('Benar! Tahan tombol KERJA untuk memasang.','good');},550);}
+  else{btn.classList.add('no');toast('Kurang tepat — pelajari lagi alat & bahannya.','bad');sayInstr('Belum tepat. Ingat: '+quizStep.fn);setTimeout(()=>btn.classList.remove('no'),700);}
+}
+
+/* hold-to-work */
+$('doBtn').addEventListener('pointerdown',e=>{btnHeld=true;if(work.state==='idle')doKerjakan();});
+$('doBtn').addEventListener('pointerup',()=>btnHeld=false);
+$('doBtn').addEventListener('pointerleave',()=>btnHeld=false);
+
+function finishStep(s){
+  if(comp[s.id])comp[s.id].visible=true;showStepCard(s);sayInstr(s.fn);
+  if(s.id==='energize'){energizeFinale();}else{toast('✔ '+s.nm,'good');pulseFx([0, s.workH>0?s.workH:1.4, 0]);}
+  curStep++;work.state='idle';work.prog=0;updateTasks();updateHUD();
+  const ns=curS();
+  if(ns)setTimeout(()=>{ if(ns.workH>0 && !attached) sayInstr('Berikutnya: '+ns.nm+'. Panjat ke cincin biru, lalu jawab kuis & tahan tombol.'); else if(ns.workH===0) sayInstr('Berikutnya: '+ns.nm+'. Turun ke tanah & dekati tiang.'); },1300);
+}
+
+/* poses */
+function restPose(){if(!charParts.armL)return;charParts.armL.rotation.x=0;charParts.armR.rotation.x=0;charParts.legL.rotation.x=0;charParts.legR.rotation.x=0;}
+function climbPose(on){if(!charParts.armL)return;if(on){charParts.armL.rotation.x=-2.2;charParts.armR.rotation.x=-2.2;charParts.legL.rotation.x=0.5;charParts.legR.rotation.x=-0.5;}else restPose();}
+function workPose(t){if(!charParts.armR)return;charParts.armR.rotation.x=-2.4+Math.sin(t*14)*0.35;charParts.armL.rotation.x=attached?-2.0:-1.4;}
+
+/* fx */
+function pulseFx(p){const ring=new THREE.Mesh(new THREE.RingGeometry(0.1,0.18,24),new THREE.MeshBasicMaterial({color:0x3ce07a,transparent:true,side:THREE.DoubleSide}));ring.position.set(p[0],p[1],p[2]);scene.add(ring);fxList.push({m:ring,t:0,kind:'ring'});}
+function energizeFinale(){
+  conductors.forEach(c=>{c.material.emissive=new THREE.Color(0x36d1dc);c.material.emissiveIntensity=0;});
+  if(lamp){lamp.material.emissive=new THREE.Color(0xffcc55);lamp.material.color=new THREE.Color(0xffe9a8);}
+  const pl=new THREE.PointLight(0xffd070,0,20);pl.position.set(-1.05,POLE.top-3,0);scene.add(pl);fxList.push({kind:'energize',t:0,pl});
+  setStat('BERTEGANGAN','var(--green)');toast('⚡ ENERGIZE BERHASIL — jaringan bertegangan!','good');
+  for(let i=0;i<18;i++){const sp=new THREE.Mesh(new THREE.SphereGeometry(0.04,5,5),new THREE.MeshBasicMaterial({color:0x9fe9ff}));sp.position.set(0.4,POLE.top-1.0,0);scene.add(sp);fxList.push({m:sp,kind:'spark',t:0,v:{x:(Math.random()-.5)*3,y:(Math.random()-.5)*3,z:(Math.random()-.5)*3}});}
+  setTimeout(showWin,2900);
+}
+function updateFx(dt){for(let i=fxList.length-1;i>=0;i--){const f=fxList[i];f.t+=dt;
+  if(f.kind==='ring'){f.m.scale.setScalar(1+f.t*5);f.m.material.opacity=Math.max(0,.8-f.t*1.4);f.m.lookAt(camera.position);if(f.t>.7){scene.remove(f.m);fxList.splice(i,1);}}
+  else if(f.kind==='spark'){f.m.position.x+=f.v.x*dt;f.m.position.y+=f.v.y*dt;f.m.position.z+=f.v.z*dt;f.m.material.opacity=Math.max(0,1-f.t*1.5);if(f.t>.7){scene.remove(f.m);fxList.splice(i,1);}}
+  else if(f.kind==='energize'){const k=Math.min(1,f.t/1.5);f.pl.intensity=2.4*k;conductors.forEach(c=>c.material.emissiveIntensity=.5*k);if(lamp)lamp.material.emissiveIntensity=k;}
+}}
+
+/* loop */
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(started){moveUpdate(dt);workUpdate(dt);}
+  if(char){char.position.set(charPos.x,charY,charPos.z);char.rotation.y=charYaw;
+    if(charShadow){charShadow.position.set(charPos.x,0.02,charPos.z);charShadow.material.opacity=Math.max(0.05,0.32-charY*0.03);}
+    if(moving&&!attached&&work.state!=='holding'){walkPhase+=dt*10;charParts.legL.rotation.x=Math.sin(walkPhase)*0.6;charParts.legR.rotation.x=-Math.sin(walkPhase)*0.6;charParts.armL.rotation.x=-Math.sin(walkPhase)*0.4;charParts.armR.rotation.x=Math.sin(walkPhase)*0.4;}
+    else if(!attached&&work.state==='idle'){restPose();}
+  }
+  // target band
+  const s=curS();
+  if(started&&s&&s.workH>0){targetBand.visible=true;targetBand.position.set(POLE.x,s.workH,POLE.z);const okp=inPosition();targetBand.material.color.setHex(okp?0x3ce07a:0x36d1dc);targetBand.material.opacity=0.5+0.3*Math.sin(performance.now()/250);}
+  else if(targetBand)targetBand.visible=false;
+  // camera
+  const tgt=new THREE.Vector3(charPos.x,charY+1.4,charPos.z);
+  const off=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch)).multiplyScalar(camDist);
+  camera.position.copy(tgt).add(off);camera.lookAt(tgt);
+  for(const k in ghost)ghost[k].visible=false;
+  if(started&&s&&work.state!=='holding'){const g=ghost[s.id];if(g)g.visible=true;}
+  if(started){updateHUD();updateActBtn();}
+  updateFx(dt);renderer.render(scene,camera);
+}
+function moveUpdate(dt){
+  if(attached){ // climb with W/S
+    if(keys['KeyW']||keys['ArrowUp'])climbStepSmooth(2.4*dt);
+    if(keys['KeyS']||keys['ArrowDown'])climbStepSmooth(-2.4*dt);
+    if(isTouch&&Math.abs(joyVec.y)>0.3)climbStepSmooth(-joyVec.y*2.2*dt);
+    moving=false;return;
+  }
+  let f=0,s=0;
+  if(keys['KeyW']||keys['ArrowUp'])f+=1;if(keys['KeyS']||keys['ArrowDown'])f-=1;
+  if(keys['KeyA']||keys['ArrowLeft'])s-=1;if(keys['KeyD']||keys['ArrowRight'])s+=1;
+  if(isTouch&&(Math.abs(joyVec.x)>0.05||Math.abs(joyVec.y)>0.05)){f+=-joyVec.y;s+=joyVec.x;}
+  moving=!!(f||s);if(!moving)return;
+  const fwdX=-Math.sin(camYaw),fwdZ=-Math.cos(camYaw);
+  const rgtX=-Math.cos(camYaw),rgtZ=Math.sin(camYaw);
+  let mx=fwdX*f+rgtX*s, mz=fwdZ*f+rgtZ*s;const ml=Math.hypot(mx,mz)||1;mx/=ml;mz/=ml;
+  const spd=4.4*dt;charPos.x+=mx*spd;charPos.z+=mz*spd;charYaw=Math.atan2(mx,mz);
+  const d=Math.hypot(charPos.x-POLE.x,charPos.z-POLE.z);if(d<0.85){const a=Math.atan2(charPos.z-POLE.z,charPos.x-POLE.x);charPos.x=POLE.x+Math.cos(a)*0.85;charPos.z=POLE.z+Math.sin(a)*0.85;}
+}
+function climbStepSmooth(d){charY=Math.max(0,Math.min(POLE.top-1.6,charY+d));climbPose(charY>0.05);if(charY<0.05){attached=false;restPose();setStat('DI TANAH');}else setStat(d>0?'MEMANJAT':'DI TIANG','var(--cyan)');}
+function workUpdate(dt){
+  if(work.state==='ready'||work.state==='holding'){
+    const holding=(eHeld||btnHeld)&&inPosition();
+    if(holding){work.state='holding';work.prog=Math.min(1,work.prog+dt/1.5);workPose(performance.now()/1000);
+      if(work.prog>=1){const s=curS();finishStep(s);}
+    } else { if(work.state==='holding'){work.state='ready';} }
+  }
+}
+
+/* HUD */
+function idn(n,d=0){return n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function updateHUD(){$('vH').textContent=idn(charY,1)+' m';$('vP').textContent=curStep+' / '+STEPS.length;$('progBar').style.width=(curStep/STEPS.length*100)+'%';}
+function updateActBtn(){
+  const b=$('doBtn'),tx=$('doTxt'),fill=$('doFill');const s=curS();
+  if(!s){b.classList.add('dis');tx.textContent='✔ SELESAI';fill.style.width='0%';$('panjatBtn').classList.add('dis');return;}
+  $('panjatBtn').classList.toggle('dis',!(nearPole()||attached));
+  $('upBtn').classList.toggle('dis',!attached);$('dnBtn').classList.toggle('dis',!attached);
+  if(work.state==='ready'||work.state==='holding'){b.classList.remove('dis');tx.textContent=work.state==='holding'?('⚙️ BEKERJA… '+Math.round(work.prog*100)+'%'):'⬇️ TAHAN UNTUK BEKERJA';fill.style.width=(work.prog*100)+'%';return;}
+  fill.style.width='0%';
+  if(inPosition()){b.classList.remove('dis');tx.textContent='▶ KERJAKAN: '+s.nm.split(' ').slice(0,3).join(' ');}
+  else{b.classList.add('dis');tx.textContent=s.workH===0?'Dekati tiang (di tanah)':(attached?'Naik/turun ke cincin biru':'Panjat tiang dulu (Spasi)');}
+}
+function updateTasks(){const w=$('taskList');w.innerHTML='';STEPS.forEach((s,i)=>{const cls=i<curStep?'done':i===curStep?'cur':'';const el=document.createElement('div');el.className='task '+cls;el.innerHTML=`<span class="bx">${i<curStep?'✓':''}</span><span class="nm">${i+1}. ${s.nm}</span>`;w.appendChild(el);});}
+function setStat(t,col){$('statTxt').textContent=t;$('statDot').style.background=col||'var(--amber)';}
+let cardT;function showStepCard(s){$('scNo').textContent=STEPS.indexOf(s)+1;$('scNm').textContent=s.nm;$('scFn').textContent=s.fn;$('scAlat').innerHTML=s.alat.map(a=>'• '+a).join('<br>');$('scBahan').innerHTML=s.bahan.map(b=>'• '+b).join('<br>');$('scTip').textContent='💡 '+s.tip;$('stepcard').style.display='block';clearTimeout(cardT);cardT=setTimeout(()=>$('stepcard').style.display='none',8500);}
+function showCurrentCard(){const s=curS();if(s)showStepCard(s);}
+let toastT;function toast(t,k){const el=$('toast');el.textContent=t;el.className='show '+(k||'');clearTimeout(toastT);toastT=setTimeout(()=>el.className=el.className.replace('show',''),2600);}
+let subT;function sayInstr(t){const el=$('sub');$('subTxt').textContent=t;el.classList.add('show');clearTimeout(subT);subT=setTimeout(()=>el.classList.remove('show'),Math.max(3000,t.length*42));if(!muted&&'speechSynthesis'in window){try{const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';u.rate=1.03;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}}
+
+/* flow */
+$('startBtn').addEventListener('click',()=>{$('start').style.display='none';$('apd').style.display='flex';buildAPD();});
+function buildAPD(){const pool=$('apdPool');pool.innerHTML='';APD.equipped=0;APD.forEach(a=>{const el=document.createElement('div');el.className='apd-item';el.id='apd_'+a.id;el.innerHTML=`<span class="ic">${a.ic}</span><span>${a.nm}<small>${a.fn}</small></span>`;el.addEventListener('click',()=>equipAPD(a,el));pool.appendChild(el);});}
+function equipAPD(a,el){el.classList.add('done');el.innerHTML+='<span class="chk">✓</span>';const p=$(a.part);if(p)p.classList.add('on');if(a.id==='sarung')$('pGlovesR').classList.add('on');APD.equipped=(APD.equipped||0)+1;if(APD.equipped>=APD.length)$('apdGo').style.display='inline-block';}
+$('apdGo').addEventListener('click',()=>{$('apd').style.display='none';beginGame();});
+function beginGame(){
+  started=true;updateTasks();updateHUD();setStat('DI TANAH');
+  $('actWrap').style.display='flex';if(isTouch)$('joy').style.display='block';
+  showCurrentCard();
+  sayInstr('Selamat bertugas! Jalan ke tiang, tekan PANJAT lalu naik ke cincin biru. Jawab kuis, lalu tahan tombol untuk memasang travers.');
+  toast('Jalan ke tiang & panjat untuk mulai.','good');
+}
+function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Ketinggian kerja maks: <b>${idn(POLE.top-2,1)} m</b><br>K3: <b style="color:var(--green)">APD lengkap · pentanahan OK</b>`;}
+$('winBtn').addEventListener('click',()=>location.reload());
+$('bReset').addEventListener('click',()=>location.reload());
+$('bMute').addEventListener('click',()=>{muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';if(muted&&'speechSynthesis'in window)speechSynthesis.cancel();});
+$('bCam').addEventListener('click',()=>{camYaw=Math.PI;camPitch=0.40;camDist=9;toast('Kamera diatur ulang.','');});
+function buildInsight(){const g=$('insGrid');g.innerHTML='';
+  STEPS.forEach((s,i)=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${i+1}. ${s.nm}</b><span class="tag">${s.tag}</span><p>${s.fn}</p><div class="ab"><span class="l2">🧰 Alat:</span> ${s.alat.join(', ')}<br><span class="l">📦 Bahan:</span> ${s.bahan.join(', ')}<br><span style="color:var(--amber)">💡 ${s.tip}</span></div>`;g.appendChild(d);});
+  APD.forEach(a=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${a.ic} ${a.nm}</b><span class="tag">APD</span><p>${a.fn}</p>`;g.appendChild(d);});}
+$('bInsight').addEventListener('click',()=>{buildInsight();$('insight').style.display='flex';});
+$('insClose').addEventListener('click',()=>$('insight').style.display='none');
+
+try{ if(window.THREE){init();loop();} else {document.body.innerHTML='<div style="color:#fff;padding:40px;font-family:monospace">Gagal memuat Three.js. Periksa koneksi.</div>';} }
+catch(err){console.error(err);}
+</script>
 </body>
 </html>
