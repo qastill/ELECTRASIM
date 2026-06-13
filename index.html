@@ -22,56 +22,60 @@
     color:var(--txt);font-family:var(--sans);min-height:100vh;
     display:flex;flex-direction:column;align-items:center;padding:40px 22px 50px;
   }
-  header{text-align:center;max-width:660px;margin-bottom:38px}
+  header{text-align:center;max-width:680px;margin-bottom:34px}
   .ey{font-size:11px;letter-spacing:.34em;color:var(--amber);font-weight:700}
   h1{font-size:clamp(30px,7vw,56px);font-weight:800;letter-spacing:-.02em;margin:12px 0 8px}
   h1 .b{color:var(--cyan)}
   header p{color:#aeb9c6;font-size:14.5px;line-height:1.65}
-
   .flow{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;
     font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:18px;letter-spacing:.08em}
   .flow .n{color:var(--txt);font-weight:700}
   .flow .ar{color:var(--amber)}
 
-  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;width:100%;max-width:1040px}
-  @media(max-width:880px){.grid{grid-template-columns:1fr;max-width:440px}}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;width:100%;max-width:1100px}
+  @media(max-width:920px){.grid{grid-template-columns:1fr;max-width:460px}}
 
-  .card{position:relative;display:flex;flex-direction:column;background:var(--panel);
-    border:1px solid var(--line);border-radius:18px;padding:26px 22px 22px;
-    backdrop-filter:blur(10px);text-decoration:none;color:inherit;overflow:hidden;
-    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
-  .card:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--ac)}
-  .card .glow{position:absolute;top:-60px;right:-60px;width:170px;height:170px;border-radius:50%;
-    background:var(--ac);opacity:.14;filter:blur(38px)}
-  .card:hover{transform:translateY(-6px);border-color:var(--ac);box-shadow:0 16px 40px #0008}
-  .card.soon{cursor:default}
-  .card.soon:hover{transform:none;border-color:var(--line);box-shadow:none}
+  .stage{position:relative;display:flex;flex-direction:column;background:var(--panel);
+    border:1px solid var(--line);border-radius:18px;padding:22px 20px;backdrop-filter:blur(10px);overflow:hidden}
+  .stage:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--ac)}
+  .stage .glow{position:absolute;top:-60px;right:-60px;width:170px;height:170px;border-radius:50%;
+    background:var(--ac);opacity:.13;filter:blur(38px)}
+  .shead{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .shead .ic{font-size:34px;line-height:1}
+  .shead .step{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--dim);font-weight:700}
+  .shead .ttl{font-size:19px;font-weight:800;letter-spacing:-.01em;color:var(--ac)}
+  .scount{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim);border:1px solid var(--line);
+    border-radius:999px;padding:3px 9px;letter-spacing:.05em}
+  .skv{font-family:var(--mono);font-size:11px;color:var(--ac);font-weight:700;margin:2px 0 14px;letter-spacing:.05em;opacity:.9}
 
-  .step{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--dim);font-weight:700}
-  .ic{font-size:46px;margin:14px 0 4px}
-  .ttl{font-size:21px;font-weight:800;letter-spacing:-.01em}
-  .ttl .ac{color:var(--ac)}
-  .kv{font-family:var(--mono);font-size:11px;color:var(--ac);font-weight:700;margin:4px 0 12px;letter-spacing:.06em}
-  .desc{font-size:13px;color:#b8c2cf;line-height:1.6;flex:1;margin-bottom:18px}
-  .cta{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;
-    font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ac);
-    border:1px solid var(--ac);border-radius:10px;padding:10px 18px;letter-spacing:.06em}
-  .card:hover .cta{background:var(--ac);color:#0a0d12}
-  .tag{position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:10px;font-weight:700;
-    letter-spacing:.1em;padding:4px 10px;border-radius:999px}
-  .tag.ready{color:var(--green);border:1px solid #2a5a3a;background:#0e2016}
-  .tag.soon{color:var(--amber);border:1px dashed #5a4a20;background:#1a160c}
-  .cta.dim{color:var(--dim);border-color:#3a444f;cursor:default}
+  .mods{display:flex;flex-direction:column;gap:9px}
+  a.mod{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;
+    background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+    transition:transform .14s ease,border-color .14s ease,background .14s ease}
+  a.mod:hover{transform:translateY(-2px);border-color:var(--ac);background:rgba(255,255,255,.06)}
+  .mod .mic{font-size:20px;flex:none}
+  .mod .mbody{flex:1;min-width:0}
+  .mod .mname{font-size:13.5px;font-weight:700;line-height:1.2}
+  .mod .mdesc{font-size:11px;color:#9fabb9;line-height:1.45;margin-top:3px}
+  .mod .mtag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;padding:3px 8px;
+    border-radius:999px;flex:none;white-space:nowrap}
+  .mtag.ready{color:var(--green);border:1px solid #2a5a3a;background:#0e2016}
+  .mtag.soon{color:var(--amber);border:1px dashed #5a4a20;background:#1a160c}
+  .mod.soon{opacity:.62}
+  .mod.soon:hover{transform:none;border-color:var(--line);background:rgba(255,255,255,.03)}
+  .mod .arr{color:var(--ac);font-family:var(--mono);font-weight:700;flex:none;opacity:0;transition:opacity .14s}
+  a.mod:hover .arr{opacity:1}
 
-  footer{margin-top:40px;font-family:var(--mono);font-size:11px;color:#5d6b7a;letter-spacing:.08em;text-align:center}
+  footer{margin-top:38px;font-family:var(--mono);font-size:11px;color:#5d6b7a;letter-spacing:.08em;text-align:center}
+  footer b{color:#8aa2c4}
 </style>
 </head>
 <body>
   <header>
     <div class="ey">SIMULATOR SISTEM TENAGA LISTRIK</div>
     <h1>ELECTRA<span class="b">SIM</span></h1>
-    <p>Jelajahi perjalanan listrik dari sumbernya hingga ke rumah. Pilih salah satu dari tiga
-       tahap rantai pasok tenaga listrik untuk memulai simulasi.</p>
+    <p>Jelajahi perjalanan listrik dari sumbernya hingga ke rumah. Pilih tahap, lalu pilih
+       modul simulasi yang ingin kamu jalankan.</p>
     <div class="flow">
       <span class="n">PEMBANGKIT</span><span class="ar">━▶</span>
       <span class="n">TRANSMISI</span><span class="ar">━▶</span>
@@ -83,46 +87,91 @@
   <div class="grid">
 
     <!-- PEMBANGKIT -->
-    <a class="card" href="pembangkit.html" style="--ac:#ffb020">
+    <div class="stage" style="--ac:#ffb020">
       <span class="glow"></span>
-      <span class="tag ready">● SIAP</span>
-      <div class="step">TAHAP 1</div>
-      <div class="ic">🏭</div>
-      <div class="ttl"><span class="ac">PEMBANGKIT</span></div>
-      <div class="kv">PLTGU COMBINED-CYCLE · 50 Hz</div>
-      <div class="desc">Konsol operator SimPLTGU. Kemudikan turbin gas–uap: jaga frekuensi
-        50 Hz, kelola bahan bakar, keandalan, emisi, dan laba lewat tampilan 3D & diagram satu garis.</div>
-      <span class="cta">MULAI SIMULASI →</span>
-    </a>
+      <div class="shead">
+        <span class="ic">🏭</span>
+        <div>
+          <div class="step">TAHAP 1</div>
+          <div class="ttl">PEMBANGKIT</div>
+        </div>
+        <span class="scount">1 MODUL</span>
+      </div>
+      <div class="skv">GENERATION · 50 Hz</div>
+      <div class="mods">
+        <a class="mod" href="pembangkit.html">
+          <span class="mic">⚙️</span>
+          <span class="mbody">
+            <span class="mname">SimPLTGU — Konsol Operator</span>
+            <span class="mdesc">Kemudikan PLTGU combined-cycle: jaga 50 Hz, kelola bahan bakar, keandalan & emisi. Tampilan 3D + SLD.</span>
+          </span>
+          <span class="mtag ready">SIAP</span>
+          <span class="arr">→</span>
+        </a>
+      </div>
+    </div>
 
     <!-- TRANSMISI -->
-    <a class="card" href="transmisi.html" style="--ac:#36d1dc">
+    <div class="stage" style="--ac:#36d1dc">
       <span class="glow"></span>
-      <span class="tag ready">● SIAP</span>
-      <div class="step">TAHAP 2</div>
-      <div class="ic">🗼</div>
-      <div class="ttl"><span class="ac">TRANSMISI</span></div>
-      <div class="kv">GARDU INDUK 150/20 kV</div>
-      <div class="desc">Telusuri gardu induk dalam tampilan orang-pertama. Kenali trafo daya,
-        PMT, busbar, dan switchyard 150 kV sambil menyelesaikan misi keselamatan kerja (APD/K3).</div>
-      <span class="cta">MASUK GARDU →</span>
-    </a>
+      <div class="shead">
+        <span class="ic">🗼</span>
+        <div>
+          <div class="step">TAHAP 2</div>
+          <div class="ttl">TRANSMISI</div>
+        </div>
+        <span class="scount">2 MODUL</span>
+      </div>
+      <div class="skv">TRANSMISSION · 500 / 150 kV</div>
+      <div class="mods">
+        <a class="mod" href="transmisi.html">
+          <span class="mic">🏗️</span>
+          <span class="mbody">
+            <span class="mname">Gardu Induk 150/20 kV</span>
+            <span class="mdesc">Jelajah switchyard orang-pertama: trafo daya, PMT, busbar, dan misi keselamatan kerja (APD/K3).</span>
+          </span>
+          <span class="mtag ready">SIAP</span>
+          <span class="arr">→</span>
+        </a>
+        <a class="mod" href="dispatch.html">
+          <span class="mic">📡</span>
+          <span class="mbody">
+            <span class="mname">SimDispatch — Pengatur Beban (P2B)</span>
+            <span class="mdesc">Meja dispatcher Jamali: economic dispatch & merit order, jaga frekuensi/cadangan, tangani trip unit (N-1).</span>
+          </span>
+          <span class="mtag ready">SIAP</span>
+          <span class="arr">→</span>
+        </a>
+      </div>
+    </div>
 
     <!-- DISTRIBUSI -->
-    <a class="card soon" href="distribusi.html" style="--ac:#9a7bff">
+    <div class="stage" style="--ac:#9a7bff">
       <span class="glow"></span>
-      <span class="tag soon">⏳ SEGERA</span>
-      <div class="step">TAHAP 3</div>
-      <div class="ic">🏘️</div>
-      <div class="ttl"><span class="ac">DISTRIBUSI</span></div>
-      <div class="kv">JARINGAN 20 kV / 220 V</div>
-      <div class="desc">Penyulang menengah, trafo distribusi, gardu portal, dan sambungan
-        pelanggan rumah hingga industri. Modul ini sedang dalam pengembangan.</div>
-      <span class="cta dim">LIHAT PRATINJAU →</span>
-    </a>
+      <div class="shead">
+        <span class="ic">🏘️</span>
+        <div>
+          <div class="step">TAHAP 3</div>
+          <div class="ttl">DISTRIBUSI</div>
+        </div>
+        <span class="scount">SEGERA</span>
+      </div>
+      <div class="skv">DISTRIBUTION · 20 kV / 220 V</div>
+      <div class="mods">
+        <a class="mod soon" href="distribusi.html">
+          <span class="mic">🔌</span>
+          <span class="mbody">
+            <span class="mname">Jaringan Distribusi 20 kV</span>
+            <span class="mdesc">Penyulang, trafo distribusi, gardu portal & sambungan pelanggan. Modul dalam pengembangan.</span>
+          </span>
+          <span class="mtag soon">SEGERA</span>
+          <span class="arr">→</span>
+        </a>
+      </div>
+    </div>
 
   </div>
 
-  <footer>ELECTRASIM · PEMBANGKIT · TRANSMISI · DISTRIBUSI</footer>
+  <footer>ELECTRASIM · <b>3 modul aktif</b> · PEMBANGKIT · TRANSMISI · DISTRIBUSI</footer>
 </body>
 </html>
