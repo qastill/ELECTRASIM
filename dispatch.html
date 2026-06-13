@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimDispatch — Konsol Pengatur Beban Jamali</title>
+<style>
+  :root{
+    --bg0:#070d18;--line:#244168;--line2:#36588a;
+    --ink:#cfe0f5;--ink-dim:#8aa2c4;--ink-faint:#5d749a;
+    --accent:#5fa8ff;--accent2:#8fd0ff;
+    --good:#57d98a;--warn:#ffcf5f;--bad:#ff6b6b;--rec:#ff5a52;--btn-edge:#3a608f;
+    --mono:"SFMono-Regular",ui-monospace,"Cascadia Mono","DejaVu Sans Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 70% -10%,#14305c33,transparent 60%),radial-gradient(900px 600px at 10% 110%,#0a2a4a44,transparent 55%),linear-gradient(180deg,#060b16,#0a1322 60%,#070d18);color:var(--ink);font-family:var(--mono);font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .wrap{height:100vh;display:flex;flex-direction:column;padding:10px;gap:8px}
+  .topbar{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#0f1e38,#0a1528);padding:8px 14px;box-shadow:inset 0 1px 0 #2a467a55,0 3px 8px #0007}
+  .menu{display:flex;gap:4px;align-items:center}
+  .menu .m{position:relative;letter-spacing:2px;font-weight:600;font-size:12px;color:var(--ink-dim);padding:6px 12px;border-radius:5px;cursor:pointer;user-select:none}
+  .menu .m:hover{color:var(--accent2);background:#163058}
+  .menu .homebtn{border:1px solid var(--line2);background:#13284a;color:var(--ink-dim);letter-spacing:2px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;text-decoration:none;font-size:12px}
+  .menu .homebtn:hover{color:var(--accent2);background:#163058}
+  .menu .pausebtn{border:1px solid var(--line2);background:#13284a;color:var(--ink);letter-spacing:2px;font-weight:700;padding:6px 16px;border-radius:6px;cursor:pointer;box-shadow:inset 0 1px 0 #3a608f55}
+  .menu .pausebtn.on{background:#5a2a2a;border-color:#8a4a4a;color:#ffd2cf}
+  .menu .helpbtn{border:1px solid #2b6fd6;background:#16315a;color:var(--accent2);letter-spacing:2px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer}
+  .menu .helpbtn:hover{background:#1d3f72}
+  .brand{margin-left:auto;letter-spacing:3px;font-weight:700;color:var(--ink-dim);font-size:13px}
+  .dropdown{position:absolute;top:34px;left:0;min-width:220px;z-index:60;display:none;background:#0c1d38;border:1px solid var(--line2);border-radius:7px;padding:6px;box-shadow:0 12px 30px #000a}
+  .dropdown.show{display:block}
+  .dropdown .di{padding:7px 10px;border-radius:5px;color:var(--ink-dim);letter-spacing:1px;font-size:12px;cursor:pointer}
+  .dropdown .di:hover{background:#16315a;color:var(--accent2)}
+  .dropdown .sep{height:1px;background:var(--line);margin:5px 4px}
+
+  .cols{display:grid;grid-template-columns:1.05fr 1fr;gap:8px;flex:1;min-height:0}
+  .panel{border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#0b1730,#091222);display:flex;flex-direction:column;min-height:0;overflow:hidden;box-shadow:inset 0 1px 0 #24416855}
+  .panel-hd{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--line);letter-spacing:3px;font-weight:700;color:var(--accent2);font-size:13px}
+  .panel-bd{flex:1;min-height:0;overflow:auto;padding:12px}
+  .panel-bd::-webkit-scrollbar{width:9px}.panel-bd::-webkit-scrollbar-thumb{background:#1d3458;border-radius:6px}
+
+  .vtoggle{display:flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+  .vtoggle .vb{padding:4px 11px;letter-spacing:1px;font-size:11px;font-weight:700;color:var(--ink-dim);cursor:pointer;background:#0e1f3a}
+  .vtoggle .vb.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff}
+
+  .stage{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#04101f;height:340px}
+  #cv{display:block;width:100%;height:100%}
+  .stage .ttl{position:absolute;top:8px;left:12px;color:var(--ink-faint);letter-spacing:1px;font-size:11px;text-shadow:0 1px 2px #000;pointer-events:none}
+  .stage .clk{position:absolute;top:8px;right:12px;color:var(--accent2);letter-spacing:1px;font-size:12px;font-weight:700;text-shadow:0 1px 2px #000;pointer-events:none}
+
+  .freqbar{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:11px 13px;background:#0a1830aa}
+  .freqbar .big{font-size:30px;font-weight:800;letter-spacing:1px;color:var(--good)}
+  .freqbar .lab{color:var(--ink-faint);font-size:10px;letter-spacing:1px}
+  .ftrack{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,#7a2a2a,#7a2a2a 18%,#2f6f4a 40%,#2f6f4a 60%,#7a2a2a 82%,#7a2a2a);border:1px solid #1c3358;overflow:visible}
+  .ftrack .nd{position:absolute;top:-3px;width:3px;height:18px;background:#fff;border-radius:2px;box-shadow:0 0 6px #fff;transform:translateX(-50%)}
+  .ftrack .mid{position:absolute;left:50%;top:-3px;width:1px;height:18px;background:#5fd0ff99;transform:translateX(-50%)}
+  .ftk{display:flex;justify-content:space-between;color:var(--ink-faint);font-size:9px;margin-top:5px;letter-spacing:1px}
+
+  .mixwrap{margin-top:10px}
+  .mixwrap h4{margin:0 0 8px;letter-spacing:2px;color:var(--ink-dim);font-size:12px;font-weight:700;display:flex;align-items:center}
+  .mixrow{display:grid;grid-template-columns:88px 1fr 78px;gap:9px;align-items:center;margin:5px 0;font-size:11px}
+  .mixrow .mk{display:flex;align-items:center;gap:7px;color:var(--ink-dim);letter-spacing:.5px}
+  .mixrow .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .mbar{height:9px;border-radius:5px;background:#0d1d38;overflow:hidden;border:1px solid #1c3358}
+  .mbar>i{display:block;height:100%;width:0%}
+  .mixrow .mv{text-align:right;color:var(--ink);font-weight:700}
+  .mixrow .mv small{color:var(--ink-faint);font-weight:400}
+
+  /* RIGHT */
+  .badge{border:1px solid var(--line2);border-radius:20px;padding:3px 12px;letter-spacing:2px;font-weight:700;font-size:11px;color:var(--ink-dim);cursor:pointer}
+  .badge.auto{color:var(--accent2)} .badge.rec{color:var(--rec);border-color:#8a3a36} .badge.rec.on{background:#5a2222;color:#ffd2cf}
+  .hd-badges{display:flex;gap:7px}
+  .card{border:1px solid var(--line);border-radius:8px;background:#0a1730;padding:13px;margin-bottom:11px}
+  .card h3{margin:0 0 12px;letter-spacing:2px;color:var(--accent2);font-size:13px;font-weight:700;display:flex;align-items:center}
+  .card h3.sub{color:var(--ink-dim)}
+  .ico{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line2);color:var(--ink-faint);font-size:10px;margin-left:7px;cursor:help;font-style:normal;flex:none}
+  .ico:hover{color:var(--accent2);border-color:var(--accent)}
+
+  .moderow{display:flex;gap:8px;margin-bottom:12px}
+  .modebtn{flex:1;border:1px solid var(--btn-edge);border-radius:6px;background:linear-gradient(180deg,#16294a,#0f1f3a);color:var(--ink-dim);letter-spacing:1px;font-weight:700;font-size:11px;padding:9px;cursor:pointer;text-align:center}
+  .modebtn.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff;border-color:#6fa8ef}
+
+  .sld{margin:0 0 11px}
+  .sld .lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .sld .lab .name{letter-spacing:.5px;color:var(--ink-dim);font-size:11px;font-weight:600;display:flex;align-items:center}
+  .sld .lab .name .sw{width:9px;height:9px;border-radius:2px;margin-right:6px}
+  .sld .lab .val{color:var(--ink);font-weight:700;font-size:12px}
+  .sld .lab .val small{color:var(--ink-faint);font-weight:400}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:5px;background:linear-gradient(90deg,#2b6fd6 var(--p,50%),#13243f var(--p,50%));outline:none;border:1px solid #1c3358}
+  input[type=range]:disabled{opacity:.45}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:4px;background:linear-gradient(180deg,#dce9ff,#9cc2f0);border:1px solid #6fa8ef;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:4px;background:#cfe0f5;border:1px solid #6fa8ef;cursor:pointer}
+  .hint{color:var(--ink-faint);font-size:11px;margin:-2px 0 12px;line-height:1.55}.hint b{color:var(--ink-dim)}
+
+  .btnrow{display:flex;gap:8px;margin:12px 0 4px}
+  .pill{flex:1;border:1px solid var(--btn-edge);border-radius:6px;background:linear-gradient(180deg,#16294a,#0f1f3a);color:var(--ink-dim);letter-spacing:1px;font-weight:700;font-size:11px;padding:9px;cursor:pointer;text-align:center}
+  .pill:hover{color:var(--accent2);border-color:var(--line2)} .pill.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff;border-color:#6fa8ef}
+  select{width:100%;background:#0c1c38;color:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:10px;letter-spacing:.5px;font-family:var(--mono);font-size:12px;font-weight:600}
+  .ts{display:flex;gap:7px;margin-top:8px}.ts .pill{flex:1;padding:7px}
+  .clk2{color:var(--ink-faint);font-size:11px;margin-top:9px;letter-spacing:1px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+  .stat{border:1px solid var(--line);border-radius:7px;padding:10px 11px;background:#0c1c38}
+  .stat .k{color:var(--ink-faint);letter-spacing:.5px;font-size:10px;font-weight:600;display:flex;align-items:center}
+  .stat .v{color:var(--accent2);font-weight:700;font-size:17px;margin-top:5px}
+  .stat .v.small{font-size:14px}.stat .u{color:var(--ink-faint);font-size:11px;font-weight:600}
+  .stat .v.good{color:var(--good)}.stat .v.warn{color:var(--warn)}.stat .v.bad{color:var(--bad)}
+
+  .barstat{margin:9px 0}
+  .barstat .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);margin-bottom:5px;letter-spacing:.5px;align-items:center}
+  .barstat .nm{display:flex;align-items:center}.barstat .v{color:var(--ink);font-weight:700}
+  .bigbar{height:9px;border-radius:5px;background:#0d1d38;overflow:hidden;border:1px solid #1c3358}
+  .bigbar>i{display:block;height:100%;background:linear-gradient(90deg,#2b6fd6,#5fd0ff);width:50%}
+  .bigbar.warn>i{background:linear-gradient(90deg,#c79a2e,#ffd76a)}.bigbar.bad>i{background:linear-gradient(90deg,#c0392b,#ff7a6a)}
+
+  .grade{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:8px;padding:13px;background:#0c1c38}
+  .grade .lg{font-size:38px;font-weight:800;color:var(--good)}.grade .gx{color:var(--ink-dim);font-size:12px;line-height:1.5}
+
+  .log{font-size:11px;line-height:1.7;max-height:190px;overflow:auto}
+  .log .e{display:flex;gap:9px;padding:3px 0;border-bottom:1px solid #112344}
+  .log .e .t{color:var(--ink-faint);white-space:nowrap}.log .e .x{color:var(--ink-dim)}
+  .log .e.good .x{color:var(--good)}.log .e.warn .x{color:var(--warn)}.log .e.bad .x{color:var(--bad)}
+
+  .directives{display:flex;flex-direction:column;gap:7px}
+  .dir{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:7px;padding:9px 11px;background:#0c1c38}
+  .dir .dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex:none;margin-top:3px}
+  .dir.ok .dot{background:var(--good)}.dir.warn .dot{background:var(--warn)}.dir.bad .dot{background:var(--bad)}
+  .dir .dx{font-size:11px;color:var(--ink-dim);line-height:1.45}.dir .dx b{color:var(--ink)}
+
+  #tip{position:fixed;z-index:200;max-width:300px;display:none;background:#0c1e3c;border:1px solid var(--accent);border-radius:7px;padding:9px 11px;font-size:11px;line-height:1.5;color:var(--ink);box-shadow:0 10px 30px #000b;pointer-events:none}#tip b{color:var(--accent2)}
+
+  .overlay{position:fixed;inset:0;z-index:150;background:#020713cc;display:none;align-items:center;justify-content:center;padding:24px}.overlay.show{display:flex}
+  .modal{max-width:780px;width:100%;max-height:86vh;overflow:auto;background:linear-gradient(180deg,#0e1f3c,#0a1628);border:1px solid var(--line2);border-radius:12px;padding:22px 26px;box-shadow:0 24px 60px #000b}
+  .modal h2{margin:0 0 4px;letter-spacing:2px;color:var(--accent2);font-size:18px}.modal .sm{color:var(--ink-faint);font-size:12px;margin-bottom:14px}
+  .modal h4{letter-spacing:1px;color:var(--accent);margin:18px 0 8px;font-size:13px}
+  .modal p,.modal li{color:var(--ink-dim);font-size:12.5px;line-height:1.65}.modal ul{margin:6px 0;padding-left:20px}.modal b{color:var(--ink)}
+  .modal table{width:100%;border-collapse:collapse;margin-top:6px}.modal td{border-bottom:1px solid #16294a;padding:6px 4px;font-size:12px;color:var(--ink-dim)}.modal td b{color:var(--ink)}
+  .modal .closebtn{position:sticky;top:0;float:right;border:1px solid var(--line2);background:#16315a;color:var(--accent2);border-radius:6px;padding:6px 14px;letter-spacing:2px;font-weight:700;cursor:pointer}
+  .attr{color:var(--ink-faint);font-size:10px;line-height:1.5;margin-top:6px}
+
+  @media(max-width:1050px){.cols{grid-template-columns:1fr}.panel.right{min-height:560px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="menu">
+      <a class="homebtn" href="index.html">‹ MENU</a>
+      <div class="m" data-menu="sesi">SESI
+        <div class="dropdown" id="dd-sesi">
+          <div class="di" data-act="reset">Setel Ulang</div>
+          <div class="sep"></div>
+          <div class="di" data-act="slow">Perlambat Waktu</div>
+          <div class="di" data-act="norm">Waktu Normal</div>
+          <div class="di" data-act="fast">Percepat Waktu</div>
+        </div>
+      </div>
+      <div class="m" data-menu="tampil">TAMPILAN
+        <div class="dropdown" id="dd-tampil">
+          <div class="di" data-act="vk">Kurva Dispatch</div>
+          <div class="di" data-act="vp">Peta Sistem Jamali</div>
+          <div class="di" data-act="vm">Merit Order</div>
+          <div class="di" data-act="vs">SLD 500 kV Jawa-Bali</div>
+        </div>
+      </div>
+      <div class="m" data-menu="skenario">SKENARIO
+        <div class="dropdown" id="dd-skenario">
+          <div class="di" data-scen="0">Operasi Normal</div>
+          <div class="di" data-scen="1">Beban Puncak Malam</div>
+          <div class="di" data-scen="2">Mendung (Surya Turun)</div>
+          <div class="di" data-scen="3">Trip Unit Besar</div>
+          <div class="di" data-scen="4">Surplus Siang (EBT Tinggi)</div>
+        </div>
+      </div>
+      <div class="pausebtn" id="topPause">JEDA</div>
+      <div class="helpbtn" id="helpBtn">? PANDUAN</div>
+    </div>
+    <div class="brand">SIMDISPATCH — KONSOL PENGATUR BEBAN JAMALI (P2B)</div>
+  </div>
+
+  <div class="cols">
+
+    <!-- LEFT -->
+    <div class="panel left">
+      <div class="panel-hd">
+        <span>PUSAT PENGATUR BEBAN</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="vtoggle" id="viewToggle">
+            <div class="vb on" data-view="curve">KURVA</div>
+            <div class="vb" data-view="map">PETA</div>
+            <div class="vb" data-view="merit">MERIT</div>
+            <div class="vb" data-view="sld">SLD</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-bd">
+        <div class="stage">
+          <canvas id="cv"></canvas>
+          <div class="ttl" id="cvTitle">Kurva Dispatch — Pasokan vs Beban (rolling)</div>
+          <div class="clk" id="cvClock">18.00 WIB</div>
+        </div>
+
+        <div class="freqbar">
+          <div>
+            <div class="lab">FREKUENSI SISTEM</div>
+            <div class="big" id="freqBig">50,00<span style="font-size:14px"> Hz</span></div>
+          </div>
+          <div>
+            <div class="ftrack"><div class="mid"></div><div class="nd" id="freqNeedle" style="left:50%"></div></div>
+            <div class="ftk"><span>49,0</span><span>49,5</span><span style="color:#5fd0ff">50,0</span><span>50,5</span><span>51,0</span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="lab">STATUS <i class="ico" data-tip="Frekuensi adalah indikator keseimbangan. &gt; 50 Hz = pasokan berlebih, &lt; 50 Hz = pasokan kurang. &lt; 49,5 Hz memicu pelepasan beban (UFLS).">i</i></div>
+            <div id="freqStat" style="font-weight:700;color:var(--good);font-size:13px">SEIMBANG</div>
+          </div>
+        </div>
+
+        <div class="mixwrap">
+          <h4>BAURAN PEMBANGKITAN (GENERATION MIX) <i class="ico" data-tip="Kontribusi tiap jenis pembangkit terhadap total pasokan saat ini, dalam MW dan persen.">i</i></h4>
+          <div id="mixRows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="panel right">
+      <div class="panel-hd">
+        <span>KENDALI DISPATCH</span>
+        <div class="hd-badges">
+          <div class="badge auto" id="bAuto" data-tip="Mode kendali aktif.">AUTO</div>
+          <div class="badge rec" id="bRec" data-tip="Rekam telemetri.">REK</div>
+        </div>
+      </div>
+      <div class="panel-bd">
+
+        <!-- DASBOR SISTEM -->
+        <div class="card">
+          <h3>DASBOR SISTEM</h3>
+          <div class="grid2">
+            <div class="stat"><div class="k">BEBAN SISTEM <i class="ico" data-tip="Total permintaan listrik seluruh Jamali saat ini (MW). Berubah mengikuti waktu — lembah malam, puncak sore.">i</i></div><div class="v" id="dDemand">0 <span class="u">MW</span></div></div>
+            <div class="stat"><div class="k">TOTAL PASOKAN <i class="ico" data-tip="Total daya yang dibangkitkan semua pembangkit. Harus selalu = beban agar frekuensi stabil 50 Hz.">i</i></div><div class="v" id="dGen">0 <span class="u">MW</span></div></div>
+          </div>
+          <div style="height:9px"></div>
+          <div class="grid3">
+            <div class="stat"><div class="k">CADANGAN <i class="ico" data-tip="Cadangan berputar (spinning reserve): daya siap naik dari unit yang sedang jalan. Harus ≥ unit terbesar (~2.000 MW) agar aman bila ada unit trip (kriteria N-1).">i</i></div><div class="v small" id="dReserve">0 <span class="u">MW</span></div></div>
+            <div class="stat"><div class="k">BPP <i class="ico" data-tip="Biaya Pokok Penyediaan — biaya rata-rata membangkitkan 1 kWh. Makin rendah makin efisien (target < ~1.200 Rp/kWh).">i</i></div><div class="v small" id="dBpp">0 <span class="u">Rp/kWh</span></div></div>
+            <div class="stat"><div class="k">PANGSA EBT <i class="ico" data-tip="Persentase pasokan dari Energi Baru Terbarukan (surya, bayu, hidro, panas bumi). Makin tinggi makin hijau.">i</i></div><div class="v small" id="dRE">0 <span class="u">%</span></div></div>
+          </div>
+          <div style="height:9px"></div>
+          <div class="grid2">
+            <div class="stat"><div class="k">BIAYA OPERASI <i class="ico" data-tip="Total biaya bahan bakar + variabel seluruh sistem per jam.">i</i></div><div class="v small" id="dCost">Rp 0 <span class="u">/ jam</span></div></div>
+            <div class="stat"><div class="k">EMISI CO₂ <i class="ico" data-tip="Laju emisi karbon dioksida total sistem. PLTU batubara penyumbang terbesar.">i</i></div><div class="v small" id="dCO2">0 <span class="u">t/jam</span></div></div>
+          </div>
+          <div class="barstat" style="margin-top:11px">
+            <div class="lab"><span class="nm">MARGIN CADANGAN <i class="ico" data-tip="Cadangan berputar dibagi beban. Hijau = aman (N-1 terpenuhi), merah = rawan jika ada gangguan.">i</i></span><span class="v" id="resmTxt">0%</span></div>
+            <div class="bigbar" id="resmBar"><i></i></div>
+          </div>
+        </div>
+
+        <!-- KENDALI DISPATCH -->
+        <div class="card">
+          <h3>KENDALI PEMBEBANAN</h3>
+          <div class="moderow">
+            <div class="modebtn on" data-mode="auto" data-tip="<b>AUTO (Economic Dispatch):</b> sistem otomatis membebani pembangkit termurah dulu (merit order) sampai beban terpenuhi + cadangan. Cara P2B menekan BPP.">AUTO · EKONOMIS</div>
+            <div class="modebtn" data-mode="manual" data-tip="<b>MANUAL:</b> kamu sendiri mengatur setpoint tiap jenis pembangkit. Pas-kan total pasokan dengan beban!">MANUAL</div>
+          </div>
+          <div class="hint" id="modeHint">Mode AUTO menjalankan <b>economic dispatch</b> berbasis merit order — surya & bayu diserap dulu (gratis), lalu hidro, panas bumi, batubara, gas, hingga peaker mahal.</div>
+          <div id="dispatchSliders"></div>
+
+          <div class="sld" style="margin-top:6px">
+            <div class="lab"><span class="name">TARGET CADANGAN <i class="ico" data-tip="Berapa banyak cadangan berputar yang ingin dijaga (% beban). Tinggi = lebih aman tapi BPP naik (unit jalan tak penuh).">i</i></span><span class="val"><span id="resTgtVal">12</span>%</span></div>
+            <input type="range" id="resTgt" min="5" max="25" value="12">
+          </div>
+
+          <div class="btnrow">
+            <div class="pill" id="opPause" data-tip="Hentikan/lanjutkan waktu.">JEDA</div>
+            <div class="pill" id="opStep" data-tip="Maju satu langkah saat dijeda.">LANGKAH</div>
+            <div class="pill" id="opReset" data-tip="Kembali ke kondisi awal.">RESET</div>
+          </div>
+
+          <h3 class="sub" style="margin:14px 0 8px;font-size:12px">SKENARIO <i class="ico" data-tip="Uji respons dispatcher pada berbagai kondisi sistem nyata.">i</i></h3>
+          <select id="scenSel">
+            <option value="0">OPERASI NORMAL</option>
+            <option value="1">BEBAN PUNCAK MALAM</option>
+            <option value="2">MENDUNG (SURYA TURUN)</option>
+            <option value="3">TRIP UNIT BESAR</option>
+            <option value="4">SURPLUS SIANG (EBT TINGGI)</option>
+          </select>
+          <div class="hint" id="scenDesc" style="margin-top:8px">Kondisi normal — beban mengikuti kurva harian Jamali, EBT sesuai cuaca cerah.</div>
+
+          <h3 class="sub" style="margin:14px 0 8px;font-size:12px">SKALA WAKTU</h3>
+          <div class="ts">
+            <div class="pill" data-spd="0.5">0,5X</div>
+            <div class="pill on" data-spd="1">1X</div>
+            <div class="pill" data-spd="2">2X</div>
+            <div class="pill" data-spd="4">4X</div>
+          </div>
+          <div class="clk2" id="clkInfo">1x · 6 menit-sim/detik</div>
+        </div>
+
+        <!-- KEAMANAN -->
+        <div class="card">
+          <h3>KEAMANAN SISTEM <i class="ico" data-tip="Tiga pilar tugas dispatcher: keandalan (frekuensi & cadangan), ekonomi (BPP), lingkungan (EBT/CO₂).">i</i></h3>
+          <div class="directives" id="directives"></div>
+        </div>
+
+        <!-- NILAI -->
+        <div class="card">
+          <h3>NILAI OPERASI</h3>
+          <div class="grade"><div class="lg" id="gradeLg">B</div><div class="gx" id="gradeTxt">Sistem stabil. Jaga frekuensi, cadangan cukup, dan BPP rendah.</div></div>
+        </div>
+
+        <!-- LOG -->
+        <div class="card">
+          <h3>CATATAN KEJADIAN</h3>
+          <div class="log" id="eventLog"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<div class="overlay" id="guide">
+  <div class="modal">
+    <div class="closebtn" id="guideClose">TUTUP ✕</div>
+    <h2>PANDUAN DISPATCHER</h2>
+    <div class="sm">SimDispatch — simulator Pusat Pengatur Beban (P2B) sistem Jamali, berbasis data pembangkit nyata.</div>
+
+    <h4>🎯 Tugas Kamu</h4>
+    <p>Sebagai <b>load dispatcher</b>, kamu menyeimbangkan <b>total pasokan = total beban</b> setiap saat, sambil:</p>
+    <ul>
+      <li><b>Keandalan:</b> menjaga frekuensi 50 Hz & cadangan berputar cukup (kriteria N-1).</li>
+      <li><b>Ekonomi:</b> menekan BPP (Rp/kWh) lewat economic dispatch / merit order.</li>
+      <li><b>Lingkungan:</b> memaksimalkan pangsa EBT & menekan emisi CO₂.</li>
+    </ul>
+
+    <h4>⚡ Merit Order (urutan pembebanan termurah → termahal)</h4>
+    <table>
+      <tr><td><b>Surya / Bayu</b></td><td>Gratis, diserap dulu — tapi tak bisa diatur (tergantung cuaca/waktu).</td></tr>
+      <tr><td><b>Hidro (PLTA)</b></td><td>Murah & lincah, energi terbatas — pakai untuk puncak.</td></tr>
+      <tr><td><b>Panas Bumi (PLTP)</b></td><td>Murah, baseload, <i>must-run</i> (selalu jalan).</td></tr>
+      <tr><td><b>Batubara (PLTU)</b></td><td>Murah per kWh, tapi lambat ramp & emisi tinggi — tulang punggung baseload.</td></tr>
+      <tr><td><b>Gas CC (PLTGU)</b></td><td>Sedang, fleksibel — mengikuti beban (load-following).</td></tr>
+      <tr><td><b>Gas/Diesel peaker</b></td><td>Mahal, cepat — hanya untuk puncak atau darurat.</td></tr>
+    </table>
+
+    <h4>📊 Cara Membaca</h4>
+    <ul>
+      <li><b>Frekuensi:</b> di tengah (50 Hz) = pasokan pas. Jarum bergeser kanan = surplus, kiri = defisit.</li>
+      <li><b>Cadangan/Margin:</b> harus cukup menahan hilangnya unit terbesar (~2.000 MW). Jika hijau, sistem aman.</li>
+      <li><b>BPP:</b> turun bila kamu pakai pembangkit murah; naik bila terpaksa pakai peaker.</li>
+      <li><b>Kurva Dispatch:</b> area bertumpuk = pasokan per jenis; garis putih = beban. Keduanya harus berhimpit.</li>
+    </ul>
+
+    <h4>💡 Tips</h4>
+    <ul>
+      <li>Biarkan <b>AUTO</b> menjaga keseimbangan; pakai MANUAL untuk berlatih merit order.</li>
+      <li><b>Puncak malam:</b> surya hilang setelah magrib — siapkan PLTA/PLTGU/peaker.</li>
+      <li><b>Trip unit besar:</b> cadangan berputar menyelamatkan frekuensi. Jaga cadangan ≥ 12%!</li>
+      <li><b>Surplus siang:</b> EBT melimpah → turunkan PLTU/gas, hindari over-frekuensi & kurtailmen.</li>
+    </ul>
+    <p class="attr" id="attrText"></p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SimDispatch — Pusat Pengatur Beban Jamali (P2B)
+   Data fleet & pembangkit: Indonesia Power Map (sandro71626),
+   data publik RUPTL/OSM, lisensi CC-BY-SA 4.0.
+   ============================================================ */
+
+const FUELS=[
+  {k:'PLTP', label:'Panas Bumi', cap:1400, mc:420, co2:0.05, color:'#2bb6a3', kind:'mustrun', ramp:1.2},
+  {k:'PLTA', label:'Hidro',      cap:2500, mc:80,  co2:0,    color:'#3a86ff', kind:'hydro',  ramp:8},
+  {k:'PLTU', label:'Batubara',   cap:18500,mc:720, co2:0.95, color:'#5a6678', kind:'thermal',ramp:0.6},
+  {k:'PLTGU',label:'Gas CC',     cap:9500, mc:1150,co2:0.42, color:'#ff8c2b', kind:'thermal',ramp:2.4},
+  {k:'PLTG', label:'Gas Peaker', cap:1500, mc:2300,co2:0.55, color:'#ffb84d', kind:'peaker', ramp:6},
+  {k:'PLTD', label:'Diesel',     cap:300,  mc:3600,co2:0.78, color:'#c0703a', kind:'peaker', ramp:8},
+  {k:'PLTS', label:'Surya',      cap:1200, mc:0,   co2:0,    color:'#ffd23f', kind:'vre'},
+  {k:'PLTB', label:'Bayu',       cap:150,  mc:0,   co2:0,    color:'#7CFC9B', kind:'vre'},
+];
+const F = {}; FUELS.forEach(f=>{f.out=0;f.target=0;f.avail=f.cap;F[f.k]=f;});
+const DISPATCH_CTRL=['PLTP','PLTA','PLTU','PLTGU','PLTG','PLTD']; // controllable in MANUAL
+
+// GITET 500 kV backbone Jawa-Bali (Barat→Timur). g/l = pangsa pembangkitan/beban.
+// (representasi edukatif berdasarkan distribusi pembangkit & beban; bukan topologi rahasia)
+const REGIONS=[
+  {n:'SURALAYA',    sub:'Banten',   g:0.22, l:0.05},
+  {n:'GANDUL',      sub:'Jakarta',  g:0.18, l:0.28},
+  {n:'CIBATU',      sub:'Bekasi',   g:0.12, l:0.12},
+  {n:'BDG SELATAN', sub:'Bandung',  g:0.08, l:0.13},
+  {n:'MANDIRANCAN', sub:'Cirebon',  g:0.05, l:0.06},
+  {n:'UNGARAN',     sub:'Semarang', g:0.13, l:0.13},
+  {n:'PEDAN',       sub:'Solo',     g:0.07, l:0.10},
+  {n:'PAITON',      sub:'Jatim',    g:0.15, l:0.13},
+];
+// rating saluran (MW) per ruas; koridor Jateng klasik jadi bottleneck
+const LINE_CAP=[5200,4400,3700,3200,3000,3300,3700];
+
+// pembangkit besar nyata untuk PETA (sumber: Indonesia Power Map)
+const PLANTS=[
+  ['PLTU Suralaya','PLTU',4025,-5.889,106.031],['PLTU Tanjung Jati B','PLTU',4640,-6.447,110.743],
+  ['PLTU Paiton','PLTU',4608,-7.713,113.583],['PLTU Cilacap','PLTU',2121,-7.685,109.093],
+  ['PLTU Jawa 7','PLTU',2000,-5.992,106.106],['PLTU Batang','PLTU',2000,-6.902,109.806],
+  ['PLTU Indramayu','PLTU',990,-6.276,107.972],['PLTU Banten Lontar','PLTU',1260,-6.059,106.464],
+  ['PLTGU Muara Tawar','PLTGU',2593,-6.086,106.999],['PLTGU Priok','PLTGU',2720,-6.108,106.868],
+  ['PLTGU Muara Karang','PLTGU',1908,-6.110,106.785],['PLTGU Tambak Lorok','PLTGU',2014,-6.950,110.432],
+  ['PLTGU Gresik','PLTGU',1924,-7.165,112.664],['PLTGU Grati','PLTGU',1425,-7.649,113.025],
+  ['PLTGU Jawa-1','PLTGU',1760,-6.244,107.591],['PLTA Cirata','PLTA',1008,-6.683,107.348],
+  ['PLTA Saguling','PLTA',700,-6.91,107.39],['PLTP Kamojang','PLTP',235,-7.13,107.80],
+  ['PLTP Salak','PLTP',377,-6.73,106.68],['PLTP Wayang Windu','PLTP',227,-7.20,107.63],
+  ['PLTS Cirata','PLTS',192,-6.70,107.33],['PLTGU Cilegon','PLTGU',740,-5.98,106.05],
+];
+
+// kurva beban Jamali 24 jam (MW), bentuk khas PLN: lembah malam, puncak sore
+const LOAD24=[19500,18800,18400,18300,18600,19400,21000,22600,23400,24000,24600,24900,
+              24300,24700,24800,24500,24200,24600,26800,27600,27200,26000,23400,21200];
+// faktor kapasitas surya per jam (0..1)
+const SOLAR24=[0,0,0,0,0,0,0.05,0.2,0.4,0.6,0.78,0.9,0.95,0.9,0.78,0.6,0.4,0.18,0.03,0,0,0,0,0];
+
+const SCEN=[
+  {name:'OPERASI NORMAL', desc:'Kondisi normal — beban mengikuti kurva harian Jamali, EBT sesuai cuaca cerah.', loadMul:1.0, solarMul:1.0},
+  {name:'BEBAN PUNCAK MALAM', desc:'Puncak beban malam 18.00–21.00. Surya hilang, beban tinggi — andalkan PLTA, PLTGU, dan peaker.', loadMul:1.06, solarMul:1.0, forceHour:19},
+  {name:'MENDUNG (SURYA TURUN)', desc:'Tutupan awan tebal — output PLTS anjlok ~70%. Pasokan dari surya harus digantikan termal.', loadMul:1.0, solarMul:0.3},
+  {name:'TRIP UNIT BESAR', desc:'Sebuah unit ~2.000 MW lepas mendadak. Frekuensi turun — cadangan berputar harus menutup defisit!', loadMul:1.0, solarMul:1.0, trip:true},
+  {name:'SURPLUS SIANG (EBT TINGGI)', desc:'Siang cerah, beban rendah, surya melimpah. Risiko over-generasi & frekuensi naik — turunkan termal.', loadMul:0.82, solarMul:1.25, forceHour:12},
+];
+
+const S={
+  running:true, speed:1, mode:'auto', scenario:0,
+  hour:18.0, day:1, resTarget:12,
+  demand:0, gen:0, freq:50.0, reserveMW:0, reserveMargin:0,
+  cost:0, bpp:0, co2rate:0, reShare:0, shedMW:0,
+  grade:'B', rec:false, view:'curve',
+  manual:{PLTP:80,PLTA:30,PLTU:75,PLTGU:60,PLTG:0,PLTD:0},
+  trip:{active:false, key:null, mw:0, timer:0},
+  hist:[]
+};
+
+const $=id=>document.getElementById(id);
+const idn=(n,d=0)=>n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});
+const rp=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
+$('attrText').innerHTML='Data fleet & koordinat pembangkit: <b>Indonesia Power Map</b> (sandro71626) — data publik RUPTL PLN 2025 & OpenStreetMap, lisensi CC-BY-SA 4.0. Simulasi ini bersifat edukatif, bukan alat operasi nyata.';
+
+/* TOOLTIP */
+const tip=$('tip');
+document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-tip]');if(t){tip.innerHTML=t.getAttribute('data-tip');tip.style.display='block';}});
+document.addEventListener('mousemove',e=>{if(tip.style.display==='block'){let x=e.clientX+14,y=e.clientY+16;if(x>window.innerWidth-320)x=e.clientX-314;if(y>window.innerHeight-130)y=e.clientY-120;tip.style.left=x+'px';tip.style.top=y+'px';}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('[data-tip]'))tip.style.display='none';});
+
+/* GUIDE */
+$('helpBtn').addEventListener('click',()=>$('guide').classList.add('show'));
+$('guideClose').addEventListener('click',()=>$('guide').classList.remove('show'));
+$('guide').addEventListener('click',e=>{if(e.target.id==='guide')$('guide').classList.remove('show');});
+
+/* BUILD DISPATCH SLIDERS (manual) */
+function buildSliders(){
+  const wrap=$('dispatchSliders');wrap.innerHTML='';
+  DISPATCH_CTRL.forEach(k=>{
+    const f=F[k];
+    const d=document.createElement('div');d.className='sld';
+    d.innerHTML=`<div class="lab"><span class="name"><span class="sw" style="background:${f.color}"></span>${f.label} <small style="color:var(--ink-faint)">(${f.k})</small></span><span class="val"><span id="setv_${k}">${S.manual[k]}</span>% <small id="setm_${k}">0 MW</small></span></div>
+      <input type="range" id="set_${k}" min="0" max="100" value="${S.manual[k]}">`;
+    wrap.appendChild(d);
+    const el=d.querySelector('input');
+    el.style.setProperty('--p',S.manual[k]+'%');
+    el.addEventListener('input',()=>{S.manual[k]=parseFloat(el.value);el.style.setProperty('--p',el.value+'%');$('setv_'+k).textContent=el.value;});
+  });
+  updateSliderState();
+}
+function updateSliderState(){
+  DISPATCH_CTRL.forEach(k=>{const el=$('set_'+k);if(el)el.disabled=(S.mode!=='manual');});
+}
+
+/* MODE */
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  S.mode=b.dataset.mode;$('bAuto').textContent=S.mode==='auto'?'AUTO':'MANUAL';
+  $('modeHint').innerHTML=S.mode==='auto'?'Mode AUTO menjalankan <b>economic dispatch</b> berbasis merit order — surya & bayu diserap dulu (gratis), lalu hidro, panas bumi, batubara, gas, hingga peaker mahal.':'Mode MANUAL — atur setpoint tiap jenis (% kapasitas). <b>Pas-kan total pasokan dengan beban</b> agar frekuensi tetap 50 Hz!';
+  if(S.mode==='manual'){DISPATCH_CTRL.forEach(k=>{S.manual[k]=Math.round(F[k].out/F[k].cap*100);const el=$('set_'+k);if(el){el.value=S.manual[k];el.style.setProperty('--p',S.manual[k]+'%');$('setv_'+k).textContent=S.manual[k];}});}
+  updateSliderState();
+  logEvent(S.mode==='auto'?'Economic dispatch (AUTO) diaktifkan.':'Beralih ke dispatch MANUAL.',S.mode==='auto'?'good':'warn');
+}));
+
+/* RESERVE TARGET */
+const resEl=$('resTgt');
+resEl.addEventListener('input',()=>{S.resTarget=parseFloat(resEl.value);resEl.style.setProperty('--p',((S.resTarget-5)/20*100)+'%');$('resTgtVal').textContent=S.resTarget;});
+resEl.style.setProperty('--p',((12-5)/20*100)+'%');
+
+/* RUN/STEP/RESET/SPEED */
+function setRunning(r){S.running=r;$('topPause').textContent=r?'JEDA':'LANJUT';$('topPause').classList.toggle('on',!r);$('opPause').classList.toggle('on',!r);$('opPause').textContent=r?'JEDA':'LANJUT';}
+$('topPause').addEventListener('click',()=>setRunning(!S.running));
+$('opPause').addEventListener('click',()=>setRunning(!S.running));
+$('opStep').addEventListener('click',()=>{const wr=S.running;S.running=true;tick(6);S.running=wr;logEvent('LANGKAH manual.');});
+$('opReset').addEventListener('click',resetAll);
+document.querySelectorAll('[data-spd]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-spd]').forEach(x=>x.classList.remove('on'));b.classList.add('on');S.speed=parseFloat(b.dataset.spd);$('clkInfo').textContent=(S.speed+'').replace('.',',')+'x · '+idn(6*S.speed,0)+' menit-sim/detik';}));
+$('bRec').addEventListener('click',()=>{S.rec=!S.rec;$('bRec').classList.toggle('on',S.rec);logEvent(S.rec?'Merekam telemetri…':'Rekaman dihentikan.',S.rec?'warn':'');});
+
+/* VIEW TOGGLE */
+function setView(v){S.view=v;document.querySelectorAll('#viewToggle .vb').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+  $('cvTitle').textContent=v==='curve'?'Kurva Dispatch — Pasokan vs Beban (rolling)':v==='map'?'Peta Sistem Jamali — pembangkit utama (sumber: Indonesia Power Map)':v==='merit'?'Merit Order — urutan ekonomis & titik beban':'SLD 500 kV Jawa-Bali — backbone transmisi & aliran daya antar-region';}
+document.querySelectorAll('#viewToggle .vb').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+
+/* SCENARIO */
+function setScenario(i){S.scenario=i;$('scenSel').value=i;$('scenDesc').textContent=SCEN[i].desc;
+  const sc=SCEN[i];if(sc.forceHour!==undefined)S.hour=sc.forceHour;
+  if(sc.trip){triggerTrip();}
+  logEvent('Skenario: '+SCEN[i].name+'.','warn');}
+$('scenSel').addEventListener('change',e=>setScenario(parseInt(e.target.value)));
+document.querySelectorAll('[data-scen]').forEach(b=>b.addEventListener('click',()=>{setScenario(parseInt(b.dataset.scen));closeMenus();}));
+function triggerTrip(){
+  // pilih unit termal terbesar yang sedang jalan
+  let best=null;['PLTU','PLTGU'].forEach(k=>{if(F[k].out>1500&&(!best||F[k].out>F[best].out))best=k;});
+  if(!best)best='PLTU';
+  S.trip={active:true,key:best,mw:Math.min(2000,F[best].out*0.4+1200),timer:25};
+  logEvent('⚠ TRIP! Unit '+best+' ~'+idn(S.trip.mw,0)+' MW lepas dari sistem.','bad');
+}
+
+/* MENUS */
+function closeMenus(){document.querySelectorAll('.dropdown').forEach(d=>d.classList.remove('show'));}
+document.querySelectorAll('.menu .m[data-menu]').forEach(m=>m.addEventListener('click',e=>{e.stopPropagation();const dd=m.querySelector('.dropdown');const open=dd.classList.contains('show');closeMenus();if(!open)dd.classList.add('show');}));
+document.addEventListener('click',closeMenus);
+document.querySelectorAll('.dropdown .di[data-act]').forEach(d=>d.addEventListener('click',e=>{e.stopPropagation();handleAct(d.dataset.act);closeMenus();}));
+function handleAct(a){switch(a){case 'reset':resetAll();break;case 'slow':clickSpd(0.5);break;case 'norm':clickSpd(1);break;case 'fast':clickSpd(2);break;case 'vk':setView('curve');break;case 'vp':setView('map');break;case 'vm':setView('merit');break;case 'vs':setView('sld');break;}}
+function clickSpd(v){document.querySelector('[data-spd="'+v+'"]').click();}
+
+function resetAll(){
+  Object.assign(S,{mode:'auto',scenario:0,hour:18.0,day:1,resTarget:12,freq:50.0,shedMW:0,grade:'B',trip:{active:false,key:null,mw:0,timer:0},hist:[]});
+  FUELS.forEach(f=>{f.out=0;f.target=0;f.avail=f.cap;});
+  S.manual={PLTP:80,PLTA:30,PLTU:75,PLTGU:60,PLTG:0,PLTD:0};
+  document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x.dataset.mode==='auto'));$('bAuto').textContent='AUTO';
+  resEl.value=12;resEl.style.setProperty('--p',((12-5)/20*100)+'%');$('resTgtVal').textContent=12;
+  buildSliders();setScenario(0);$('eventLog').innerHTML='';warmStart();
+  logEvent('Sistem disetel ulang. Pengaturan beban Jamali daring.','good');setRunning(true);
+}
+
+/* LOG/CLOCK */
+function logEvent(msg,cls=''){const log=$('eventLog');const e=document.createElement('div');e.className='e '+cls;e.innerHTML='<span class="t">'+clockStr()+'</span><span class="x">'+msg+'</span>';log.prepend(e);while(log.children.length>40)log.removeChild(log.lastChild);}
+function clockStr(){const h=Math.floor(S.hour)%24;const m=Math.floor((S.hour%1)*60);return String(h).padStart(2,'0')+'.'+String(m).padStart(2,'0');}
+
+/* interpolasi kurva */
+function interp(arr,h){const i=Math.floor(h)%24,j=(i+1)%24,f=h-Math.floor(h);return arr[i]*(1-f)+arr[j]*f;}
+
+/* ============================================================
+   SIMULASI DISPATCH
+   ============================================================ */
+function tick(dtMin){
+  const sc=SCEN[S.scenario];
+  S.hour+=dtMin/60; if(S.hour>=24){S.hour-=24;S.day++;}
+
+  // beban
+  let demand=interp(LOAD24,S.hour)*sc.loadMul*(1+(Math.random()-0.5)*0.01);
+  demand=Math.max(0,demand-S.shedMW);
+  S.demand=demand;
+
+  // EBT variabel
+  const solarCf=interp(SOLAR24,S.hour)*sc.solarMul;
+  const windCf=0.22+0.12*Math.sin(S.hour*0.5)+(Math.random()-0.5)*0.06;
+  F.PLTS.avail=F.PLTS.cap*Math.max(0,Math.min(1,solarCf));
+  F.PLTB.avail=F.PLTB.cap*Math.max(0,Math.min(0.9,windCf));
+
+  // trip handling: reduce availability of tripped unit
+  FUELS.forEach(f=>{if(f.kind!=='vre')f.avail=f.cap;});
+  if(S.trip.active){S.trip.timer-=dtMin;F[S.trip.key].avail=Math.max(0,F[S.trip.key].cap-S.trip.mw);if(S.trip.timer<=0){S.trip.active=false;logEvent('Unit '+S.trip.key+' kembali sinkron ke jaringan.','good');}}
+
+  // ===== tentukan TARGET tiap unit =====
+  if(S.mode==='auto'){
+    economicDispatch(demand);
+  }else{
+    DISPATCH_CTRL.forEach(k=>{F[k].target=Math.min(F[k].avail,F[k].cap*S.manual[k]/100);});
+    F.PLTS.target=F.PLTS.avail;F.PLTB.target=F.PLTB.avail;
+  }
+  // VRE selalu mengikuti ketersediaan (kecuali kurtailmen otomatis bila surplus besar)
+  F.PLTS.target=Math.min(F.PLTS.target,F.PLTS.avail);
+  F.PLTB.target=Math.min(F.PLTB.target,F.PLTB.avail);
+
+  // ramp menuju target
+  FUELS.forEach(f=>{
+    if(f.kind==='vre'){f.out=f.target;return;}
+    const maxStep=f.cap*(f.ramp/100)*dtMin;
+    const dlt=f.target-f.out;
+    f.out+=Math.max(-maxStep,Math.min(maxStep,dlt));
+    f.out=Math.max(0,Math.min(f.avail,f.out));
+  });
+
+  S.gen=FUELS.reduce((a,f)=>a+f.out,0);
+
+  // frekuensi
+  const imbalance=(S.gen-demand)/Math.max(1000,demand);
+  const droop=(S.mode==='auto')?0.10:0.03;
+  const targetFreq=50.0+imbalance*1.1*(1-droop);
+  S.freq+=(targetFreq-S.freq)*0.22+(Math.random()-0.5)*0.01;
+  S.freq=Math.max(48.4,Math.min(51.4,S.freq));
+  const fd=Math.abs(S.freq-50);
+
+  // cadangan berputar (headroom unit termal/hidro yang jalan)
+  let reserve=0;
+  ['PLTA','PLTU','PLTGU','PLTG','PLTD'].forEach(k=>{const f=F[k];if(f.out>1)reserve+=Math.max(0,f.avail-f.out);});
+  S.reserveMW=reserve;
+  S.reserveMargin=reserve/Math.max(1,demand)*100;
+
+  // pelepasan beban (UFLS)
+  if(S.freq<49.0){S.shedMW=Math.min(demand*0.15,S.shedMW+demand*0.02*dtMin/6);if(Math.random()<0.06)logEvent('⛔ UFLS aktif — pelepasan beban '+idn(S.shedMW,0)+' MW untuk pulihkan frekuensi.','bad');}
+  else if(S.freq>49.6&&S.shedMW>0){S.shedMW=Math.max(0,S.shedMW-demand*0.01*dtMin/6);if(S.shedMW<5){S.shedMW=0;logEvent('Beban yang dilepas telah dipulihkan kembali.','good');}}
+
+  // ekonomi
+  let cost=0,co2=0,re=0;
+  FUELS.forEach(f=>{cost+=f.out*1000*f.mc; co2+=f.out*f.co2; if(['PLTS','PLTB','PLTA','PLTP'].includes(f.k))re+=f.out;});
+  S.cost=cost; S.co2rate=co2; S.bpp=cost/Math.max(1,S.gen*1000); S.reShare=re/Math.max(1,S.gen)*100;
+
+  // history utk kurva
+  S.hist.push({h:S.hour, demand:demand, vals:Object.fromEntries(FUELS.map(f=>[f.k,f.out]))});
+  if(S.hist.length>240)S.hist.shift();
+
+  // NILAI
+  let score=0;
+  score+=(fd<0.05?3:fd<0.1?2:fd<0.2?1:0);
+  score+=(S.reserveMW>=2000?2:S.reserveMW>=1200?1:0);
+  score+=(S.bpp<1100?2:S.bpp<1400?1:0);
+  score+=(S.reShare>20?1:0);
+  score+=(S.shedMW<1?1:0);
+  S.grade=score>=8?'A':score>=6?'B':score>=4?'C':score>=2?'D':'F';
+
+  if(S.running&&Math.random()<0.005*dtMin){
+    const pool=[['Pembaruan prakiraan beban dari peramal P2B.','',0],['EBT variabel berfluktuasi — penyesuaian cadangan.','warn',0.3],['Aliran daya antar-subsistem dalam batas aman.','good',0],['Harga gas spot turun tipis — PLTGU lebih ekonomis.','good',0.3]];
+    const p=pool[Math.floor(Math.random()*pool.length)];if(Math.random()>p[2]||p[2]===0)logEvent(p[0],p[1]);
+  }
+}
+
+function economicDispatch(demand){
+  // 1) VRE diserap dulu
+  F.PLTS.target=F.PLTS.avail; F.PLTB.target=F.PLTB.avail;
+  let residual=demand-(F.PLTS.avail+F.PLTB.avail);
+  // 2) urutan termurah dispatchable
+  const order=['PLTA','PLTP','PLTU','PLTGU','PLTG','PLTD'];
+  // sediakan cadangan: jangan bebani unit terakhir penuh — sisakan target reserve
+  const reserveNeed=demand*S.resTarget/100;
+  order.forEach(k=>{F[k].target=0;});
+  let remaining=Math.max(0,residual);
+  for(const k of order){
+    const f=F[k];
+    const take=Math.min(f.avail,remaining);
+    f.target=take; remaining-=take;
+    if(remaining<=0)break;
+  }
+  // tambahkan headroom untuk cadangan: kurangi sedikit beban PLTU & naikkan komit PLTGU yg jalan tak penuh (emergen otomatis)
+  // (model sederhana: jika reserve kurang, kecilkan output unit termurah yg penuh & alihkan ke yg punya headroom)
+  let committedHead=0;['PLTA','PLTU','PLTGU','PLTG','PLTD'].forEach(k=>{const f=F[k];if(f.target>1)committedHead+=Math.max(0,f.avail-f.target);});
+  if(committedHead<reserveNeed){
+    // turunkan PLTU sedikit (cap di bawah penuh) dan komit PLTGU lebih utk reserve
+    const def=reserveNeed-committedHead;
+    if(F.PLTU.target>F.PLTU.cap*0.5){F.PLTU.target=Math.max(F.PLTU.cap*0.4,F.PLTU.target-def*0.6);}
+    // tambah komit PLTGU agar tetap penuhi beban
+    const short=Math.max(0,(demand)-(FUELS.reduce((a,f)=>a+(f.kind==='vre'?f.avail:f.target),0)));
+    F.PLTGU.target=Math.min(F.PLTGU.avail,F.PLTGU.target+short);
+  }
+}
+
+/* ============================================================
+   RENDER UI
+   ============================================================ */
+function renderUI(){
+  const fd=Math.abs(S.freq-50);
+  $('dDemand').innerHTML=idn(S.demand,0)+' <span class="u">MW</span>';
+  $('dGen').innerHTML=idn(S.gen,0)+' <span class="u">MW</span>';
+  $('dReserve').innerHTML=idn(S.reserveMW,0)+' <span class="u">MW</span>';
+  const rcls=S.reserveMW>=2000?'good':S.reserveMW>=1200?'warn':'bad';$('dReserve').className='v small '+rcls;
+  $('dBpp').innerHTML=idn(S.bpp,0)+' <span class="u">Rp/kWh</span>';
+  $('dBpp').className='v small '+(S.bpp<1100?'good':S.bpp<1400?'warn':'bad');
+  $('dRE').innerHTML=idn(S.reShare,0)+' <span class="u">%</span>';
+  $('dRE').className='v small '+(S.reShare>20?'good':'');
+  $('dCost').innerHTML=rp(S.cost)+' <span class="u">/ jam</span>';
+  $('dCO2').innerHTML=idn(S.co2rate,0)+' <span class="u">t/jam</span>';
+
+  // reserve margin bar (target ~ N-1 ≈ 7-8%; show vs 15% scale)
+  const margPct=Math.min(100,S.reserveMargin/15*100);
+  setBar('resm',margPct,false);$('resmTxt').textContent=idn(S.reserveMargin,1)+'%';
+  if(S.reserveMW<1200)$('resmBar').className='bigbar bad';else if(S.reserveMW<2000)$('resmBar').className='bigbar warn';else $('resmBar').className='bigbar';
+
+  // frekuensi
+  $('freqBig').innerHTML=idn(S.freq,2)+'<span style="font-size:14px"> Hz</span>';
+  const col=fd<0.1?'var(--good)':fd<0.25?'var(--warn)':'var(--bad)';$('freqBig').style.color=col;
+  let left=((S.freq-49.0)/2.0)*100;left=Math.max(2,Math.min(98,left));$('freqNeedle').style.left=left+'%';
+  const fs=$('freqStat');
+  if(S.shedMW>1){fs.textContent='PELEPASAN BEBAN';fs.style.color='var(--bad)';}
+  else if(fd<0.1){fs.textContent='SEIMBANG';fs.style.color='var(--good)';}
+  else if(S.freq<50){fs.textContent='PASOKAN KURANG';fs.style.color='var(--warn)';}
+  else{fs.textContent='PASOKAN LEBIH';fs.style.color='var(--warn)';}
+
+  // manual setpoint MW labels
+  if(S.mode==='manual'){DISPATCH_CTRL.forEach(k=>{const m=$('setm_'+k);if(m)m.textContent=idn(F[k].cap*S.manual[k]/100,0)+' MW';});}
+
+  renderMix();renderDirectives();
+  const gc={A:'var(--good)',B:'var(--accent2)',C:'var(--warn)',D:'#ff9f5f',F:'var(--bad)'}[S.grade];
+  $('gradeLg').textContent=S.grade;$('gradeLg').style.color=gc;$('gradeTxt').textContent=gradeText();
+  $('cvClock').textContent=clockStr()+' WIB';
+}
+function setBar(p,pct,warnBad){const bar=$(p+'Bar');if(!bar)return;const i=bar.querySelector('i');i.style.width=Math.max(0,Math.min(100,pct))+'%';}
+function gradeText(){switch(S.grade){case 'A':return 'Operasi prima — frekuensi 50 Hz, cadangan aman, BPP rendah, EBT tinggi.';case 'B':return 'Sistem stabil. Jaga frekuensi, cadangan cukup, dan BPP rendah.';case 'C':return 'Perlu perhatian — periksa cadangan & deviasi frekuensi.';case 'D':return 'Kinerja buruk — cadangan tipis atau BPP mahal.';default:return 'Kritis — risiko pemadaman! Seimbangkan pasokan & beban segera.';}}
+
+function renderMix(){
+  const wrap=$('mixRows');
+  if(wrap.children.length!==FUELS.length){wrap.innerHTML='';FUELS.forEach(f=>{const r=document.createElement('div');r.className='mixrow';r.innerHTML=`<span class="mk"><span class="sw" style="background:${f.color}"></span>${f.label}</span><span class="mbar"><i id="mb_${f.k}" style="background:${f.color}"></i></span><span class="mv" id="mv_${f.k}">0</span>`;wrap.appendChild(r);});}
+  const maxv=Math.max(1,...FUELS.map(f=>f.out));
+  FUELS.forEach(f=>{$('mb_'+f.k).style.width=(f.out/maxv*100)+'%';const pct=S.gen>0?f.out/S.gen*100:0;$('mv_'+f.k).innerHTML=idn(f.out,0)+' <small>('+idn(pct,0)+'%)</small>';});
+}
+function renderDirectives(){
+  const fd=Math.abs(S.freq-50);const items=[];
+  items.push({cls:fd<0.1?'ok':fd<0.25?'warn':'bad',t:'<b>Keseimbangan:</b> frekuensi '+idn(S.freq,2)+' Hz · pasokan '+idn(S.gen,0)+' / beban '+idn(S.demand,0)+' MW.'});
+  items.push({cls:S.reserveMW>=2000?'ok':S.reserveMW>=1200?'warn':'bad',t:'<b>Cadangan berputar:</b> '+idn(S.reserveMW,0)+' MW — '+(S.reserveMW>=2000?'N-1 aman':'tipis, tambah komit unit')+'.'});
+  items.push({cls:S.bpp<1100?'ok':S.bpp<1400?'warn':'bad',t:'<b>Ekonomi:</b> BPP '+idn(S.bpp,0)+' Rp/kWh — '+(S.bpp<1100?'efisien':'mahal, kurangi peaker')+'.'});
+  items.push({cls:S.reShare>20?'ok':'warn',t:'<b>Lingkungan:</b> EBT '+idn(S.reShare,0)+'% · CO₂ '+idn(S.co2rate,0)+' t/jam.'});
+  if(S.shedMW>1)items.push({cls:'bad',t:'<b>⛔ Pemadaman:</b> '+idn(S.shedMW,0)+' MW beban dilepas — segera tambah pasokan!'});
+  if(S.trip.active)items.push({cls:'bad',t:'<b>⚠ Kontingensi:</b> unit '+S.trip.key+' lepas — cadangan menutup defisit ('+idn(S.trip.timer,0)+' mnt).'});
+  $('directives').innerHTML=items.map(it=>'<div class="dir '+it.cls+'"><span class="dot"></span><span class="dx">'+it.t+'</span></div>').join('');
+}
+
+/* ============================================================
+   CANVAS — KURVA / PETA / MERIT
+   ============================================================ */
+const cv=$('cv'),ctx=cv.getContext('2d');
+function fitCanvas(){const r=cv.parentElement.getBoundingClientRect();const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=r.width*dpr;cv.height=r.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);return{w:r.width,h:r.height};}
+const STACK=['PLTP','PLTA','PLTU','PLTGU','PLTG','PLTD','PLTB','PLTS']; // bottom→top
+function drawCurve(w,h){
+  const padL=44,padR=10,padT=14,padB=22;const pw=w-padL-padR,ph=h-padT-padB;
+  const hist=S.hist;if(hist.length<2){ctx.fillStyle='#5d749a';ctx.font='11px monospace';ctx.fillText('Mengumpulkan data…',padL,padT+20);return;}
+  const maxY=Math.max(30000,...hist.map(p=>Math.max(p.demand,STACK.reduce((a,k)=>a+p.vals[k],0))))*1.05;
+  // grid
+  ctx.strokeStyle='#16294a';ctx.lineWidth=1;ctx.fillStyle='#5d749a';ctx.font='9px monospace';
+  for(let g=0;g<=maxY;g+=5000){const y=padT+ph-(g/maxY*ph);ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();ctx.fillText((g/1000)+'GW',4,y+3);}
+  const n=hist.length;const xAt=i=>padL+i/(n-1)*pw;const yAt=v=>padT+ph-(v/maxY*ph);
+  // stacked areas
+  let base=new Array(n).fill(0);
+  STACK.forEach(k=>{const f=F[k];ctx.beginPath();
+    for(let i=0;i<n;i++){const x=xAt(i),y=yAt(base[i]+hist[i].vals[k]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+    for(let i=n-1;i>=0;i--){ctx.lineTo(xAt(i),yAt(base[i]));}
+    ctx.closePath();ctx.fillStyle=f.color+'cc';ctx.fill();
+    for(let i=0;i<n;i++)base[i]+=hist[i].vals[k];
+  });
+  // demand line
+  ctx.beginPath();ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
+  for(let i=0;i<n;i++){const x=xAt(i),y=yAt(hist[i].demand);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='10px monospace';ctx.fillText('— Beban',w-padR-66,padT+10);
+}
+function drawMerit(w,h){
+  const padL=46,padR=12,padT=16,padB=24;const pw=w-padL-padR,ph=h-padT-padB;
+  const order=['PLTS','PLTB','PLTA','PLTP','PLTU','PLTGU','PLTG','PLTD'];
+  const totalCap=order.reduce((a,k)=>a+(k==='PLTS'?F.PLTS.avail:k==='PLTB'?F.PLTB.avail:F[k].cap),0);
+  const maxMc=3800;
+  ctx.fillStyle='#5d749a';ctx.font='9px monospace';
+  for(let g=0;g<=maxMc;g+=1000){const y=padT+ph-(g/maxMc*ph);ctx.strokeStyle='#16294a';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();ctx.fillText(g+'',6,y+3);}
+  ctx.save();ctx.translate(10,padT+ph/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#8aa2c4';ctx.fillText('Biaya marginal (Rp/kWh)',-50,0);ctx.restore();
+  let x=padL;
+  order.forEach(k=>{const f=F[k];const cap=(k==='PLTS'?F.PLTS.avail:k==='PLTB'?F.PLTB.avail:f.cap);const bw=cap/totalCap*pw;const bh=Math.max(3,f.mc/maxMc*ph);const y=padT+ph-bh;
+    ctx.fillStyle=f.color+'dd';ctx.fillRect(x,y,Math.max(1,bw-1),bh);
+    ctx.strokeStyle='#0a1730';ctx.strokeRect(x,y,Math.max(1,bw-1),bh);
+    if(bw>26){ctx.fillStyle='#cfe0f5';ctx.font='8px monospace';ctx.save();ctx.translate(x+bw/2,padT+ph-4);ctx.rotate(-Math.PI/2);ctx.fillText(f.k,0,3);ctx.restore();}
+    x+=bw;});
+  // garis beban (demand) — sampai mana merit terisi
+  const dx=padL+Math.min(1,S.demand/totalCap)*pw;
+  ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(dx,padT);ctx.lineTo(dx,padT+ph);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#fff';ctx.font='10px monospace';ctx.fillText('Beban '+idn(S.demand,0)+' MW',Math.min(dx+4,w-120),padT+12);
+}
+let mapBounds=null;
+function drawMap(w,h){
+  ctx.fillStyle='#06121f';ctx.fillRect(0,0,w,h);
+  // bounds Jamali
+  const lons=PLANTS.map(p=>p[4]),lats=PLANTS.map(p=>p[3]);
+  const minLon=104.6,maxLon=114.8,minLat=-8.9,maxLat=-5.6;
+  const padX=30,padY=26;
+  const X=lon=>padX+(lon-minLon)/(maxLon-minLon)*(w-2*padX);
+  const Y=lat=>padY+(maxLat-lat)/(maxLat-minLat)*(h-2*padY);
+  // faint landmass blob (stylised Jawa) via plant convex-ish hull glow
+  ctx.fillStyle='#0e2238';
+  ctx.beginPath();
+  const hull=[[105.0,-6.0],[106.8,-5.8],[108.5,-6.2],[110.7,-6.4],[112.6,-6.9],[114.4,-8.2],[113.6,-8.5],[111.0,-8.2],[109.0,-7.8],[107.0,-7.7],[105.6,-7.0],[105.0,-6.4]];
+  hull.forEach((p,i)=>{const x=X(p[0]),y=Y(p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#1d3a5a';ctx.lineWidth=1;ctx.stroke();
+  // grid coords
+  ctx.strokeStyle='#0f2238';ctx.fillStyle='#3a526f';ctx.font='8px monospace';
+  // plants
+  PLANTS.forEach(p=>{const [nm,type,cap,lat,lon]=p;const f=F[type];const x=X(lon),y=Y(lat);
+    const util=f?Math.max(0.1,f.out/f.cap):0.3;const r=4+Math.sqrt(cap)/14;
+    ctx.beginPath();ctx.arc(x,y,r+3*util,0,7);ctx.fillStyle=(f?f.color:'#888')+Math.floor(40+util*120).toString(16).padStart(2,'0');ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=f?f.color:'#888';ctx.globalAlpha=0.55+util*0.45;ctx.fill();ctx.globalAlpha=1;
+    ctx.strokeStyle='#06121f';ctx.lineWidth=1;ctx.stroke();
+  });
+  // labels for biggest
+  ctx.fillStyle='#9fb6d4';ctx.font='8px monospace';
+  PLANTS.filter(p=>p[2]>=1900).forEach(p=>{const x=X(p[4]),y=Y(p[3]);ctx.fillText(p[0].replace('PLTGU ','').replace('PLTU ',''),x+8,y+3);});
+  ctx.fillStyle='#5d749a';ctx.font='9px monospace';ctx.fillText('Sistem Jawa-Madura-Bali · titik = pembangkit (terang = output tinggi)',padX,h-8);
+}
+let sldPhase=0, sldOverloadLogged=0;
+function drawSLD(w,h){
+  ctx.fillStyle='#05101d';ctx.fillRect(0,0,w,h);
+  const n=REGIONS.length;
+  const padL=34,padR=26;
+  const bx0=padL, bx1=w-padR, span=bx1-bx0;
+  const yb=h*0.50;                 // garis backbone 500 kV
+  const xAt=i=>bx0+i/(n-1)*span;
+  // injeksi tiap region
+  const inj=REGIONS.map(r=>S.gen*r.g - S.demand*r.l);
+  // efek trip terlokalisasi (Paiton idx7 / Suralaya idx0)
+  if(S.trip.active){const ni=(S.trip.key==='PLTU')?7:1;inj[ni]-=S.trip.mw*0.5;inj[1]+=S.trip.mw*0.25;inj[5]+=S.trip.mw*0.25;}
+  // aliran tiap ruas (radial): flow[k] = Σ inj[0..k]  (positif = Barat→Timur)
+  const flow=[];let acc=0;for(let k=0;k<n-1;k++){acc+=inj[k];flow.push(acc);}
+  const fd=Math.abs(S.freq-50);
+  let anyOverload=false;
+
+  // header
+  ctx.fillStyle='#8aa2c4';ctx.font='10px monospace';
+  ctx.fillText('BUS 500 kV',bx0,yb-58);
+  const busV=500*(0.99+(S.freq-50)*0.004);
+  ctx.fillStyle='#cfe0f5';ctx.fillText(idn(busV,0)+' kV · '+idn(S.freq,2)+' Hz',bx0+90,yb-58);
+
+  sldPhase-=0.9+ (S.gen/30000)*1.2;
+
+  // ruas + aliran
+  for(let k=0;k<n-1;k++){
+    const x1=xAt(k),x2=xAt(k+1);const f=flow[k];const cap=LINE_CAP[k];
+    const load=Math.abs(f)/cap;const over=load>1;if(over)anyOverload=true;
+    const col=over?'#ff6b6b':load>0.8?'#ffcf5f':'#f0a83a';
+    // backbone segment
+    ctx.strokeStyle=col;ctx.lineWidth=over?6:4;ctx.beginPath();ctx.moveTo(x1,yb);ctx.lineTo(x2,yb);ctx.stroke();
+    // moving dashes (direction by sign)
+    ctx.save();ctx.strokeStyle='#ffffff';ctx.globalAlpha=0.55;ctx.lineWidth=2;
+    ctx.setLineDash([7,9]);
+    const dir=f>=0?1:-1;ctx.lineDashOffset=dir*sldPhase;
+    ctx.beginPath();ctx.moveTo(x1,yb);ctx.lineTo(x2,yb);ctx.stroke();ctx.restore();
+    // arrow head mid
+    const mx=(x1+x2)/2;const ah=7*dir;
+    ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(mx+ah,yb);ctx.lineTo(mx-ah,yb-5);ctx.lineTo(mx-ah,yb+5);ctx.closePath();ctx.fill();
+    // flow label
+    ctx.fillStyle=over?'#ff6b6b':'#9fb6d4';ctx.font='9px monospace';ctx.textAlign='center';
+    ctx.fillText(idn(Math.abs(f),0)+' MW'+(over?' ⚠':''),mx,yb-12);
+    ctx.textAlign='left';
+  }
+
+  // node GITET + generator + beban
+  for(let i=0;i<n;i++){
+    const x=xAt(i),r=REGIONS[i];
+    const genMW=S.gen*r.g - (S.trip.active&&((S.trip.key==='PLTU'&&i===7)||(S.trip.key==='PLTGU'&&i===1))?S.trip.mw*0.5:0);
+    const loadMW=S.demand*r.l;
+    // bus tick
+    ctx.strokeStyle='#f0a83a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,yb-10);ctx.lineTo(x,yb+10);ctx.stroke();
+    // node label
+    ctx.fillStyle='#cfe0f5';ctx.font='bold 9px monospace';ctx.textAlign='center';
+    ctx.fillText(r.n,x,yb+26);
+    ctx.fillStyle='#5d749a';ctx.font='8px monospace';ctx.fillText(r.sub,x,yb+37);
+    // generator up
+    ctx.strokeStyle='#5fd0ff';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x,yb-10);ctx.lineTo(x,yb-40);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,yb-52,12,0,7);ctx.fillStyle='#0c1c38';ctx.fill();
+    ctx.strokeStyle=genMW>3500?'#57d98a':'#5fd0ff';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#8fd0ff';ctx.font='bold 8px monospace';ctx.fillText('G',x,yb-49);
+    ctx.fillStyle='#57d98a';ctx.font='8px monospace';ctx.fillText(idn(genMW,0),x,yb-68);
+    // beban arah bawah (panah)
+    ctx.strokeStyle='#ff9f5f';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x,yb+10);ctx.lineTo(x,yb+48);ctx.stroke();
+    ctx.fillStyle='#ff9f5f';ctx.beginPath();ctx.moveTo(x,yb+56);ctx.lineTo(x-5,yb+48);ctx.lineTo(x+5,yb+48);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ffb37a';ctx.font='8px monospace';ctx.fillText(idn(loadMW,0),x,yb+72);
+  }
+  ctx.textAlign='left';
+
+  // legend / status
+  ctx.fillStyle='#5d749a';ctx.font='8px monospace';
+  ctx.fillText('▲ G = injeksi pembangkit (MW)   ▼ = beban region (MW)   garis = aliran 500 kV (putih bergerak = arah)',padL,h-22);
+  ctx.fillStyle=anyOverload?'#ff6b6b':fd>0.2?'#ffcf5f':'#57d98a';ctx.font='9px monospace';
+  ctx.fillText(anyOverload?'⚠ SALURAN BEBAN LEBIH — kelola pembebanan/redispatch':'Aliran 500 kV dalam batas aman (N-1).',padL,h-8);
+
+  if(anyOverload&&performance.now()-sldOverloadLogged>6000){sldOverloadLogged=performance.now();logEvent('⚠ Saluran 500 kV mendekati/melebihi rating — pertimbangkan redispatch antar-region.','warn');}
+}
+function drawScene(){const {w,h}=fitCanvas();ctx.clearRect(0,0,w,h);if(S.view==='curve')drawCurve(w,h);else if(S.view==='map')drawMap(w,h);else if(S.view==='merit')drawMerit(w,h);else drawSLD(w,h);requestAnimationFrame(drawScene);}
+window.addEventListener('resize',()=>{});
+
+/* MAIN LOOP */
+let lastT=performance.now();
+function loop(now){const dt=(now-lastT)/1000;lastT=now;if(S.running){tick(Math.min(30,dt*6*S.speed));}renderUI();requestAnimationFrame(loop);}
+
+/* warm-start: mulai dari kondisi tunak (pembangkit sudah jalan & seimbang) */
+function warmStart(){
+  const demand=interp(LOAD24,S.hour)*SCEN[S.scenario].loadMul;
+  const solarCf=interp(SOLAR24,S.hour)*SCEN[S.scenario].solarMul;
+  const windCf=0.25;
+  F.PLTS.avail=F.PLTS.cap*Math.max(0,solarCf);F.PLTB.avail=F.PLTB.cap*windCf;
+  FUELS.forEach(f=>{if(f.kind!=='vre')f.avail=f.cap;});
+  economicDispatch(demand);
+  FUELS.forEach(f=>{f.out=(f.kind==='vre')?f.avail:f.target;});
+  S.gen=FUELS.reduce((a,f)=>a+f.out,0);S.freq=50.0;
+}
+
+/* BOOT */
+buildSliders();setScenario(0);setView('curve');warmStart();
+logEvent('SimDispatch daring — Pusat Pengatur Beban sistem Jamali.','good');
+logEvent('Economic dispatch (AUTO) aktif. Selamat bertugas, Dispatcher.','good');
+drawScene();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
