@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ElectraSim · Yantek (Pelayanan Teknik) 20 kV</title>
+<style>
+  :root{--bg:#0b0e12;--panel:rgba(12,16,22,.86);--line:#2c3848;--amber:#ffb020;--cyan:#36d1dc;--green:#3ce07a;--red:#ff4d4d;--txt:#eaf0f6;--dim:#9aa7b6;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--txt);user-select:none}
+  #c{display:block;width:100vw;height:100vh}
+  .hud{position:fixed;pointer-events:none;z-index:5}
+  #tele{top:12px;left:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;min-width:212px;backdrop-filter:blur(8px)}
+  #tele .ttl{font-size:10px;letter-spacing:.16em;color:var(--dim);font-weight:700;margin-bottom:7px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:3px 0}
+  .row .k{font-size:11px;color:var(--dim)}.row .v{font-family:var(--mono);font-size:14px;font-weight:600}
+  #progWrap{margin-top:8px;height:8px;background:#161d27;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  #progBar{height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .45s}
+  #stat{margin-top:8px;display:flex;align-items:center;gap:8px}#statDot{width:9px;height:9px;border-radius:50%;background:var(--dim)}#statTxt{font-family:var(--mono);font-size:12px;font-weight:700}
+  #miss{top:12px;right:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px;width:264px;max-height:46vh;overflow:auto;backdrop-filter:blur(8px)}
+  #miss::-webkit-scrollbar{width:5px}#miss::-webkit-scrollbar-thumb{background:#1d3458;border-radius:6px}
+  #miss .ttl{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:700;margin-bottom:8px}
+  .task{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:12px;line-height:1.3;color:var(--dim)}
+  .task .bx{flex:0 0 16px;height:16px;border:1.5px solid var(--line);border-radius:4px;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent}
+  .task.cur{color:var(--txt)}.task.cur .bx{border-color:var(--amber)}.task.done{color:var(--txt)}.task.done .bx{border-color:var(--green);color:var(--green)}
+  .task .nm{font-weight:600}.task.cur .nm{color:var(--amber)}
+  #stepcard{bottom:128px;left:50%;transform:translateX(-50%);width:min(560px,94vw);background:var(--panel);border:1px solid var(--amber);border-radius:14px;padding:12px 15px;backdrop-filter:blur(10px);display:none}
+  #stepcard .sc-h{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  #stepcard .sc-no{font-family:var(--mono);font-size:11px;font-weight:800;color:#06140b;background:var(--amber);border-radius:7px;padding:3px 8px}
+  #stepcard .sc-nm{font-size:15px;font-weight:800}
+  #stepcard .sc-fn{font-size:12px;color:#c4d0dd;line-height:1.45;margin-bottom:8px}
+  #stepcard .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  #stepcard .sc-box{background:#10161f;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  #stepcard .sc-lbl{font-size:9px;letter-spacing:.1em;font-weight:700;margin-bottom:4px}#stepcard .sc-lbl.b{color:var(--cyan)}#stepcard .sc-lbl.a{color:var(--green)}
+  #stepcard .sc-li{font-size:11px;color:#cdd6e0;line-height:1.5}#stepcard .sc-tip{font-size:11px;color:var(--amber);margin-top:7px;line-height:1.4}
+  #toast{bottom:70px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 15px;font-size:12px;font-weight:600;opacity:0;transition:.25s;text-align:center;max-width:84vw;backdrop-filter:blur(8px)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.bad{border-color:var(--red);color:#ffd0d0}#toast.good{border-color:var(--green);color:#d3ffe4}
+  #sub{bottom:26px;left:50%;transform:translateX(-50%);max-width:min(720px,92vw);text-align:center;font-size:14px;line-height:1.4;color:#fff;text-shadow:0 2px 10px #000;font-weight:600;opacity:0;transition:.2s;pointer-events:none}
+  #sub.show{opacity:1}#sub .who{display:block;font-size:9px;letter-spacing:.18em;color:var(--cyan);font-weight:700;margin-bottom:3px}
+  #actWrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:none;flex-direction:column;align-items:center;gap:9px}
+  #doBtn{position:relative;overflow:hidden;background:linear-gradient(180deg,#ffc341,#ff9e16);border:none;color:#241400;font-weight:800;font-size:15px;padding:15px 30px;border-radius:14px;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.35);font-family:var(--sans);max-width:92vw;transition:.15s}
+  #doBtn:active{transform:scale(.97)}#doBtn.dis{background:#222a35;color:#73808f;box-shadow:none;cursor:default}
+  #doBtn .fill{position:absolute;inset:0;background:rgba(255,255,255,.35);width:0%;pointer-events:none}
+  .climbrow{display:flex;gap:8px}
+  .climbrow button{background:var(--panel);border:1px solid var(--cyan);color:var(--cyan);font-weight:700;font-size:13px;padding:10px 16px;border-radius:11px;cursor:pointer;backdrop-filter:blur(8px);min-width:74px}
+  .climbrow button:active{transform:scale(.96)}.climbrow button.dis{border-color:var(--line);color:#5a6675}
+  .btnbar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+  .btnbar button{background:var(--panel);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px 11px;border-radius:10px;cursor:pointer;backdrop-filter:blur(8px)}
+  .btnbar button:hover{border-color:var(--amber);color:var(--amber)}
+  .touch{position:fixed;z-index:7;pointer-events:auto;display:none}
+  #joy{bottom:18px;left:18px;width:118px;height:118px;border-radius:50%;background:rgba(20,26,34,.4);border:1px solid var(--line)}
+  #joyKnob{position:absolute;top:50%;left:50%;width:46px;height:46px;border-radius:50%;background:rgba(255,176,32,.85);transform:translate(-50%,-50%)}
+  #quiz{position:fixed;inset:0;z-index:16;background:rgba(6,9,14,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+  #quizCard{background:#10161f;border:1px solid var(--amber);border-radius:16px;padding:20px 22px;max-width:460px;width:100%}
+  #quizCard .qtag{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:800}
+  #quizCard h3{font-size:17px;margin:6px 0 4px;line-height:1.3}
+  #quizCard .qhint{font-size:12px;color:var(--dim);margin-bottom:14px}
+  .qopt{display:block;width:100%;text-align:left;background:#161d27;border:1px solid var(--line);color:var(--txt);font-size:14px;font-weight:600;padding:13px 15px;border-radius:11px;margin:8px 0;cursor:pointer;transition:.12s;font-family:var(--sans)}
+  .qopt:hover{border-color:var(--cyan)}.qopt.ok{border-color:var(--green);background:rgba(60,224,122,.12)}.qopt.no{border-color:var(--red);background:rgba(255,77,77,.1)}
+  /* gardu inspection */
+  #gardu{position:fixed;right:12px;bottom:12px;z-index:16;width:min(360px,94vw);background:var(--panel);border:1px solid var(--cyan);border-radius:16px;padding:14px 15px;backdrop-filter:blur(10px);display:none;max-height:80vh;overflow:auto}
+  #gardu .gh{font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:2px}
+  #gardu .gs{font-size:11px;color:var(--dim);margin-bottom:10px}
+  .gcomp{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#10161f;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:6px 0;cursor:pointer;transition:.12s}
+  .gcomp:hover{border-color:var(--cyan)}.gcomp.bad{border-color:var(--red)}.gcomp.fixed{border-color:var(--green);opacity:.7}
+  .gcomp .gn{font-size:12px;font-weight:700}.gcomp .gst{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--line)}
+  .gst.ok{color:var(--green);border-color:#244e36}.gst.bad{color:var(--red);border-color:#5a2530}.gst.chk{color:var(--amber);border-color:#5a4520}
+  #gDetail{font-size:11.5px;color:#c4d0dd;line-height:1.5;background:#0c1118;border:1px dashed var(--line);border-radius:9px;padding:9px 11px;margin-top:8px;min-height:54px}
+  #gDetail .rd{font-family:var(--mono);color:var(--txt);font-weight:600}
+  #gActs{display:flex;gap:8px;margin-top:10px}
+  #gActs button{flex:1;font-family:var(--sans);font-weight:800;font-size:13px;padding:11px;border-radius:11px;border:none;cursor:pointer}
+  #gFix{background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400;display:none}
+  #gDone{background:#1d3340;color:#73808f;border:1px solid var(--line)!important}#gDone.on{background:linear-gradient(180deg,#52e58e,#2fbf6a);color:#06210f;cursor:pointer}
+  .overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow-y:auto}
+  #start{background:radial-gradient(120% 120% at 50% 22%,#27201a 0%,#0a0d13 72%)}
+  #start .ey{font-size:11px;letter-spacing:.26em;color:var(--amber);font-weight:700}
+  #start h1{font-size:clamp(24px,5.5vw,42px);font-weight:800;margin:9px 0 4px}#start h1 span{color:var(--amber)}
+  #start p{color:#b9c2cd;max-width:500px;font-size:14px;line-height:1.55;margin-bottom:20px}
+  .go{font-family:var(--sans);font-size:14px;border:none;background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400;padding:14px 30px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.3)}
+  .go:active{transform:scale(.98)}#start .keys{margin-top:16px;font-size:11px;color:var(--dim);font-family:var(--mono);line-height:1.7}
+  .backlink{margin-top:18px;font-size:12px;color:var(--cyan);font-family:var(--mono);text-decoration:none;border:1px solid #244c55;border-radius:8px;padding:8px 16px}
+  .backlink:hover{background:rgba(54,209,220,.1)}
+  #apd{background:radial-gradient(120% 120% at 50% 30%,#15223a 0%,#0a0d13 72%);display:none}
+  #apd h2{font-size:clamp(19px,4.5vw,28px);font-weight:800;margin-bottom:3px}
+  #apd .ah{color:#aab6c4;font-size:13px;max-width:470px;margin-bottom:16px;line-height:1.45}
+  .equip{display:flex;gap:24px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0 14px}
+  .pool{display:flex;flex-direction:column;gap:8px;width:250px}
+  .apd-item{display:flex;align-items:center;gap:11px;background:#11161d;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;text-align:left}
+  .apd-item .ic{font-size:21px;width:25px;text-align:center}.apd-item small{display:block;color:var(--dim);font-weight:400;font-size:10.5px;margin-top:2px;line-height:1.25}
+  .apd-item:hover{border-color:var(--cyan)}.apd-item.done{opacity:.5;border-color:var(--green);pointer-events:none}.apd-item.done .chk{margin-left:auto;color:var(--green);font-family:var(--mono)}
+  .avatar{position:relative;width:170px;height:264px;border:1px dashed #34404c;border-radius:16px;background:radial-gradient(80% 70% at 50% 38%,rgba(54,209,220,.06),transparent);display:flex;align-items:center;justify-content:center}
+  .avatar .part{fill:#39424e;stroke:#10151b;stroke-width:1.5;transition:fill .25s,filter .25s}.avatar .part.on{fill:var(--green);filter:drop-shadow(0 0 5px rgba(60,224,122,.5))}
+  .avatar #pHelm.on{fill:var(--amber)}.avatar #pEyes.on{fill:#bfe9ff}.avatar #pBody.on{fill:#ff8c1a}
+  #apdGo{display:none;margin-top:2px}
+  #win{background:radial-gradient(120% 120% at 50% 30%,#10331f 0%,#0a0d13 75%);display:none}
+  #win h2{font-size:clamp(22px,5vw,34px);font-weight:800;color:var(--green);margin-bottom:6px}
+  #win p{color:#bcd;max-width:450px;font-size:14px;line-height:1.55;margin-bottom:8px}#win .stats{font-family:var(--mono);font-size:13px;margin:8px 0 16px;line-height:1.9}
+  #insight{position:fixed;inset:0;z-index:18;background:rgba(6,9,14,.95);display:none;flex-direction:column;padding:24px;overflow-y:auto}
+  #insight h2{font-size:19px;letter-spacing:.08em;color:var(--amber);margin-bottom:3px}#insight .isub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px;max-width:1040px}
+  .ins-d{background:#10161f;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .ins-d b{font-size:13px}.ins-d .tag{font-size:9px;letter-spacing:.1em;color:var(--cyan);border:1px solid #244c55;border-radius:20px;padding:1px 7px;margin-left:6px}
+  .ins-d p{font-size:11.5px;color:#b6c2d0;line-height:1.45;margin-top:6px}
+  .ins-d .ab{margin-top:6px;font-size:11px;line-height:1.5}.ins-d .ab .l{color:var(--green);font-weight:700}.ins-d .ab .l2{color:var(--cyan);font-weight:700}
+  #insight .clo{position:absolute;top:18px;right:22px;font-family:var(--mono);border:1px solid var(--line);color:var(--txt);background:#11161d;border-radius:8px;padding:8px 14px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="btnbar">
+  <button onclick="location.href='index.html'">‹ MENU</button>
+  <button id="bInsight">📚 ALAT & KOMPONEN</button>
+  <button id="bCam">🎥 KAMERA</button>
+  <button id="bMute">🔊</button>
+  <button id="bReset">⟳ ULANG</button>
+</div>
+
+<div class="hud" id="tele">
+  <div class="ttl">ELECTRASIM · YANTEK 20 kV</div>
+  <div class="row"><span class="k">Lokasi</span><span class="v" id="vLoc">—</span></div>
+  <div class="row"><span class="k">Progres</span><span class="v" id="vP">0 / 6</span></div>
+  <div id="progWrap"><div id="progBar"></div></div>
+  <div id="stat"><span id="statDot"></span><span id="statTxt">PADAM</span></div>
+</div>
+
+<div class="hud" id="miss">
+  <div class="ttl">SPK · PENANGANAN GANGGUAN SUTM</div>
+  <div id="taskList"></div>
+</div>
+
+<div class="hud" id="stepcard">
+  <div class="sc-h"><span class="sc-no" id="scNo">1</span><span class="sc-nm" id="scNm">—</span></div>
+  <div class="sc-fn" id="scFn"></div>
+  <div class="sc-grid">
+    <div class="sc-box"><div class="sc-lbl b">🧰 ALAT</div><div class="sc-li" id="scAlat"></div></div>
+    <div class="sc-box"><div class="sc-lbl a">📦 BAHAN</div><div class="sc-li" id="scBahan"></div></div>
+  </div>
+  <div class="sc-tip" id="scTip"></div>
+</div>
+
+<div class="hud" id="toast"></div>
+<div class="hud" id="sub"><span class="who">PIKET / INSTRUKTUR</span><span id="subTxt"></span></div>
+
+<div id="actWrap">
+  <button id="doBtn"><span class="fill" id="doFill"></span><span id="doTxt">▶ KERJAKAN</span></button>
+  <div class="climbrow"><button id="panjatBtn">🧗 PANJAT</button><button id="upBtn">▲ NAIK</button><button id="dnBtn">▼ TURUN</button></div>
+</div>
+
+<div class="touch" id="joy"><div id="joyKnob"></div></div>
+
+<div id="quiz"><div id="quizCard">
+  <div class="qtag" id="qTag">KUIS</div>
+  <h3 id="qQ">—</h3>
+  <div class="qhint">Jawab benar untuk melanjutkan penanganan.</div>
+  <div id="qOpts"></div>
+</div></div>
+
+<!-- gardu inspection panel -->
+<div id="gardu">
+  <div class="gh">🔍 INSPEKSI GARDU DISTRIBUSI</div>
+  <div class="gs">Klik tiap komponen untuk membaca kondisinya. Temukan & atasi penyebab gangguan.</div>
+  <div id="gList"></div>
+  <div id="gDetail">Pilih komponen untuk melihat pembacaan & penjelasannya…</div>
+  <div id="gActs"><button id="gFix">🔧 GANTI / PERBAIKI</button><button id="gDone">SELESAI INSPEKSI</button></div>
+</div>
+
+<div class="overlay" id="start">
+  <div class="ey">PT PLN · SIMULATOR PELAYANAN TEKNIK (YANTEK)</div>
+  <h1>ELECTRASIM <span>YANTEK</span></h1>
+  <p><b>Penyulang 20 kV trip — sebagian pelanggan padam.</b> Sebagai petugas Yantek, kamu menelusuri jaringan, menemukan <b>SUTM putus karena binatang</b>, mengamankan & memperbaikinya, lalu <b>inspeksi gardu</b> (zoom-in) untuk menemukan NH Fuse putus, dan menormalkan tegangan. Tiap langkah ada kuis & edukasi.</p>
+  <button class="go" id="startBtn">▶ MULAI PENUGASAN</button>
+  <div class="keys">Jalan: <b>WASD</b>/joystick · Kamera: <b>seret layar</b> · Panjat: <b>Spasi</b>+W/S · Kerja: tahan <b>E</b>/tombol</div>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<div class="overlay" id="apd">
+  <h2>BRIEFING K3 — KENAKAN APD</h2>
+  <div class="ah">Klik tiap <b>Alat Pelindung Diri</b>. Penanganan gangguan jaringan <b>wajib</b> APD lengkap + perlengkapan switching.</div>
+  <div class="equip">
+    <div class="pool" id="apdPool"></div>
+    <div class="avatar">
+      <svg viewBox="0 0 120 200" width="148" height="244">
+        <ellipse class="part" id="pBoots" cx="60" cy="188" rx="30" ry="9"/>
+        <rect class="part" id="pBody" x="40" y="92" width="40" height="74" rx="10"/>
+        <rect class="part" id="pHarness" x="44" y="100" width="32" height="58" rx="7" fill="#2a3038"/>
+        <circle class="part" id="pHead" cx="60" cy="64" r="22"/>
+        <path class="part" id="pHelm" d="M36 60 a24 22 0 0 1 48 0 z"/>
+        <rect class="part" id="pEyes" x="48" y="58" width="24" height="7" rx="3" fill="#2a3038"/>
+        <rect class="part" id="pGlovesL" x="26" y="120" width="14" height="20" rx="6"/>
+        <rect class="part" id="pGlovesR" x="80" y="120" width="14" height="20" rx="6"/>
+      </svg>
+    </div>
+  </div>
+  <button class="go" id="apdGo">✔ APD LENGKAP — BERANGKAT</button>
+</div>
+
+<div class="overlay" id="win">
+  <h2>✔ JARINGAN NORMAL KEMBALI</h2>
+  <p id="winMsg">Gangguan teratasi. SUTM tersambung, NH Fuse diganti, tegangan normal — pelanggan menyala kembali!</p>
+  <div class="stats" id="winStats"></div>
+  <button class="go" id="winBtn">⟳ ULANGI LATIHAN</button>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<div id="insight">
+  <button class="clo" id="insClose">TUTUP ✕</button>
+  <h2>BUKU SAKU · YANTEK & KOMPONEN GARDU</h2>
+  <div class="isub">Langkah penanganan gangguan, alat & komponen gardu distribusi — referensi edukatif.</div>
+  <div class="ins-grid" id="insGrid"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0;
+const FP={x:0,z:0}, GD={x:7.5,z:-8};   // fault pole & gardu
+
+const STEPS=[
+  {id:'patroli', nm:'Patroli & Temukan Titik Gangguan', tag:'PATROLI', loc:'fault', workH:0, type:'quiz',
+   fn:'Telusuri jalur SUTM dari arah gardu. Amati indikator gangguan (fault indicator), jejak flashover, dan benda asing di konduktor.',
+   alat:['Senter / lampu sorot','HT / radio komunikasi','Fault Indicator (FI)','Teropong'], bahan:['—'],
+   tip:'Penyisiran sistematis dari outgoing penyulang menuju ujung beban.',
+   q:'Alat yang membantu mempercepat menemukan titik gangguan di jaringan adalah…',
+   opt:['Fault Indicator (FI)','Tang ampere','Megger'], ans:0},
+  {id:'identifikasi', nm:'Identifikasi Penyebab Gangguan', tag:'ANALISA', loc:'fault', workH:0, type:'quiz',
+   fn:'Konduktor SUTM satu fasa putus & menjuntai, ada bangkai binatang tersangkut di travers serta bekas flashover pada isolator.',
+   alat:['Kamera dokumentasi','Tongkat ukur'], bahan:['—'],
+   tip:'Dokumentasikan kondisi untuk laporan gangguan & evaluasi.',
+   q:'Konduktor putus + bangkai ular di travers + isolator gosong. Penyebab gangguan paling mungkin…',
+   opt:['Beban lebih pada trafo','Hubung singkat fasa-tanah akibat binatang','Faktor daya rendah'], ans:1},
+  {id:'amankan', nm:'Amankan Lokasi & Pembumian Lokal', tag:'K3 / SWITCHING', loc:'fault', workH:0, type:'quizhold',
+   fn:'Pastikan penyulang sudah dibuka (PMT/recloser & FCO), uji bebas tegangan, lalu pasang pembumian lokal (grounding) di sisi kerja. LOTO.',
+   alat:['Voltage detector (tester tegangan)','Stick 20 kV','Grounding set (stick + kawat pembumian)'], bahan:['Perlengkapan pembumian lokal'],
+   tip:'Urutan: buka–uji bebas tegangan–bumikan. Jangan pernah menyentuh konduktor sebelum dibumikan.',
+   q:'Sebelum menyentuh konduktor yang sudah dibebaskan, yang WAJIB dilakukan…',
+   opt:['Pasang pembumian lokal & uji bebas tegangan','Langsung sambung agar cepat menyala','Cukup pakai sarung tangan kain'], ans:0},
+  {id:'perbaikan', nm:'Singkirkan Binatang & Sambung Konduktor', tag:'PERBAIKAN', loc:'fault', workH:8.0, type:'quizhold',
+   fn:'Panjat tiang, singkirkan binatang, ganti isolator yang pecah, lalu sambung konduktor putus dengan selongsong sambung (compression/joint sleeve).',
+   alat:['Tirfor / come-along','Tang press hidrolik','Tangga / panjat & full body harness'], bahan:['Konduktor AAAC/A3CS','Selongsong sambung (joint sleeve)','Isolator pengganti'],
+   tip:'Sambungan harus kuat secara mekanis & baik secara elektris (low resistance).',
+   q:'Untuk menyambung konduktor AAAC yang putus, alat/bahan yang tepat…',
+   opt:['Selongsong sambung (compression/joint sleeve)','Lakban isolasi','Kawat ikat biasa'], ans:0},
+  {id:'gardu', nm:'Inspeksi Gardu & Ganti NH Fuse', tag:'INSPEKSI GARDU', loc:'gardu', workH:0, type:'inspect',
+   fn:'Datangi gardu distribusi. Periksa trafo, FCO sisi TM, arrester, pentanahan, dan NH Fuse sisi TR. Temukan fuse putus (arus fasa 0 A) lalu ganti sesuai rating.',
+   alat:['Tang ampere (clamp meter)','Thermogun','Megger','Kunci pas'], bahan:['NH Fuse pengganti (sesuai rating)','Pasta kontak'],
+   tip:'Bandingkan arus antar fasa — fasa dengan arus 0 A menandakan NH Fuse putus.',
+   q:'', opt:[], ans:0},
+  {id:'normal', nm:'Penormalan & Pemberian Tegangan', tag:'PENORMALAN', loc:'gardu', workH:0, type:'quizhold',
+   fn:'Lepas pembumian lokal, masukkan FCO/LBS, perintahkan masuk PMT/recloser, ukur tegangan 3 fasa, pastikan normal & pelanggan menyala. Lapor selesai.',
+   alat:['Stick 20 kV telescopic','Voltage detector','HT'], bahan:['—'],
+   tip:'Urutan aman: lepas pembumian → masukkan pengaman → cek tegangan → lapor.',
+   q:'Urutan penormalan yang benar adalah…',
+   opt:['Lepas pembumian → masukkan FCO/PMT → cek tegangan','Masukkan PMT dulu, pembumian belakangan','Energize tanpa cek tegangan'], ans:0}
+];
+const APD=[
+  {id:'helm',ic:'⛑️',nm:'Helm Pengaman',fn:'Lindungi kepala dari benturan & benda jatuh.',part:'pHelm'},
+  {id:'kacamata',ic:'🥽',nm:'Kacamata Safety',fn:'Lindungi mata dari percikan, busur & debu.',part:'pEyes'},
+  {id:'sarung',ic:'🧤',nm:'Sarung Tangan 20 kV',fn:'Sarung tangan isolasi sesuai kelas tegangan.',part:'pGlovesL'},
+  {id:'sepatu',ic:'🥾',nm:'Sepatu Safety 20 kV',fn:'Sepatu dielektrik, lindungi dari kejut & benda jatuh.',part:'pBoots'},
+  {id:'harness',ic:'🦺',nm:'Full Body Harness',fn:'Pengaman jatuh; wajib dikaitkan saat di ketinggian.',part:'pBody'},
+];
+const GARDU=[
+  {id:'fco', nm:'Cut-Out / FCO sisi TM 20 kV', read:'Fuse link 3 fasa terpasang baik', st:'ok',
+   edu:'Pengaman lebur & pemutus sisi 20 kV gardu. Jika fuse link putus, seluruh gardu padam.'},
+  {id:'arrester', nm:'Lightning Arrester', read:'Counter normal · tak ada jejak flashover', st:'ok',
+   edu:'Melindungi trafo dari surja petir / switching. Periksa kabel pentanahan arrester.'},
+  {id:'trafo', nm:'Trafo Distribusi 100 kVA', read:'20kV/400V · suhu 62°C · oli cukup · dengung normal', st:'ok',
+   edu:'Menurunkan 20 kV → 400/230 V. Cek suhu, level & rembesan oli, silica gel, dan dengung abnormal.'},
+  {id:'arde', nm:'Pentanahan Gardu', read:'Tahanan pembumian 3 Ω', st:'ok',
+   edu:'Pembumian titik netral & body trafo. Standar ≤ 5 Ω. Ukur dengan earth tester.'},
+  {id:'beban', nm:'Pengukuran Beban (clamp meter)', read:'R: 0 A · S: 175 A · T: 168 A', st:'chk',
+   edu:'Arus fasa R = 0 A → jurusan/fuse R lepas. Bandingkan antar fasa untuk deteksi NH Fuse putus.'},
+  {id:'nh', nm:'NH Fuse sisi TR (PHB-TR)', read:'Fasa R: PUTUS ⚠ · S: baik · T: baik', st:'bad',
+   edu:'Pengaman lebur jurusan TR. NH Fuse R putus → jurusan R padam. Ganti dengan rating yang sama, jangan diakali.'},
+];
+
+let renderer,scene,camera,clock;
+const canvas=$('c');
+const POLE={x:0,z:0,top:9.4};
+let char,charParts={},charShadow=null;
+let charPos={x:4,z:14}, charY=0, charYaw=Math.PI;
+let camYaw=Math.PI, camPitch=0.40, camDist=9;
+let curStep=0, started=false, muted=false, attached=false;
+let work={state:'idle',prog:0}, eHeld=false, btnHeld=false, walkPhase=0, moving=false;
+const keys={};
+let fxList=[], targetBand=null;
+let faultBroken=null, faultFixed=null, snakeMesh=null, scorch=null, groundLocal=null;
+let lamps=[], inspectMode=false, garduFixed=false;
+
+/* textures */
+function tex(draw,rep){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');draw(x);const t=new THREE.CanvasTexture(c);if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);}return t;}
+function grassTex(){return tex(x=>{x.fillStyle='#5d7e45';x.fillRect(0,0,128,128);for(let i=0;i<900;i++){x.fillStyle=`rgba(${40+Math.random()*40},${90+Math.random()*60},${40+Math.random()*40},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,3);}},44);}
+function asphaltTex(){return tex(x=>{x.fillStyle='#34373d';x.fillRect(0,0,128,128);for(let i=0;i<1400;i++){const g=30+Math.random()*40;x.fillStyle=`rgba(${g},${g},${g+4},.6)`;x.fillRect(Math.random()*128,Math.random()*128,1.4,1.4);}},1);}
+function concreteTex(){return tex(x=>{x.fillStyle='#c4cace';x.fillRect(0,0,128,128);for(let i=0;i<700;i++){const g=150+Math.random()*70;x.fillStyle=`rgba(${g},${g},${g},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,2);}},1);}
+function skyTex(){const c=document.createElement('canvas');c.width=16;c.height=256;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#3f78c0');g.addColorStop(.5,'#86b4e0');g.addColorStop(1,'#dCeaf6');x.fillStyle=g;x.fillRect(0,0,16,256);return new THREE.CanvasTexture(c);}
+
+function init(){
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0xbcd4ea,60,190);
+  camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.05,500);clock=new THREE.Clock();
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(280,24,16),new THREE.MeshBasicMaterial({map:skyTex(),side:THREE.BackSide,fog:false}));scene.add(sky);
+  scene.add(new THREE.HemisphereLight(0xcfe2ff,0x5a6648,0.75));
+  const sun=new THREE.DirectionalLight(0xfff1d8,1.25);sun.position.set(18,34,16);sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=95;sun.shadow.camera.left=-28;sun.shadow.camera.right=28;sun.shadow.camera.top=28;sun.shadow.camera.bottom=-28;sun.shadow.bias=-0.0004;scene.add(sun);
+  buildWorld();buildFeeder();buildFault();buildGardu();buildChar();
+  resize();addEventListener('resize',resize);
+}
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+function mat(c,o={}){return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.82,metalness:.05},o));}
+function box(w,h,d,c,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+function cyl(rt,rb,h,c,seg,o){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||14),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+
+function buildWorld(){
+  const grass=new THREE.Mesh(new THREE.PlaneGeometry(380,380),new THREE.MeshStandardMaterial({map:grassTex(),roughness:1}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;scene.add(grass);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(9,380),new THREE.MeshStandardMaterial({map:asphaltTex(),roughness:1}));road.rotation.x=-Math.PI/2;road.position.set(-4,0.02,0);road.receiveShadow=true;scene.add(road);
+  for(let z=-170;z<170;z+=10){const d=new THREE.Mesh(new THREE.PlaneGeometry(0.3,4),mat(0xe3d575,{roughness:1}));d.rotation.x=-Math.PI/2;d.position.set(-4,0.03,z);scene.add(d);}
+  // houses (customers) with windows we can light up
+  for(let i=0;i<10;i++){const z=-80+i*18,hh=3+Math.random()*1.4,hx=-13-Math.random()*4;
+    const house=box(5,hh,5,0xcab79a);house.position.set(hx,hh/2,z);scene.add(house);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(4.2,2,4),mat(0x9a4a3a));roof.position.set(hx,hh+1,z);roof.rotation.y=Math.PI/4;roof.castShadow=true;scene.add(roof);
+    const win=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.0,0.06),new THREE.MeshStandardMaterial({color:0x33414a,emissive:0x000000}));win.position.set(hx+2.55,hh*0.5,z);scene.add(win);lamps.push(win);}
+  for(let i=0;i<30;i++){const x=12+Math.random()*48,z=-150+Math.random()*300;const cr=new THREE.Mesh(new THREE.SphereGeometry(1.5+Math.random(),8,7),mat(0x3f6a36));cr.position.set(x,2.1,z);cr.castShadow=true;scene.add(cr);const tr=cyl(0.18,0.24,2,0x5a4030,7);tr.position.set(x,1,z);scene.add(tr);}
+}
+function makePole(x,z){
+  const g=new THREE.Group();
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.23,POLE.top,16),new THREE.MeshStandardMaterial({map:concreteTex(),color:0xcdd2d6,roughness:.92}));pole.position.y=POLE.top/2;pole.castShadow=true;pole.receiveShadow=true;g.add(pole);
+  for(let yy=1;yy<POLE.top-0.6;yy+=0.62){const st=box(0.5,0.045,0.07,0x3a3f47);st.position.set((Math.floor(yy/0.62)%2?0.22:-0.22),yy,0);g.add(st);}
+  const arm=box(0.1,0.12,2.4,0x788088,{metalness:.4});arm.position.set(0,POLE.top-0.45,0);g.add(arm);
+  [-1,0,1].forEach(zz=>{const ins=cyl(0.07,0.1,0.26,0x8a6a40,10);ins.position.set(0,POLE.top-0.32,zz);g.add(ins);});
+  g.position.set(x,0,z);scene.add(g);return g;
+}
+let feederZ=[28,14,0,-14], conductorsMat;
+function buildFeeder(){
+  conductorsMat=new THREE.MeshStandardMaterial({color:0x3a3d42,metalness:.7,roughness:.35});
+  feederZ.forEach(z=>makePole(0,z));
+  // conductors between consecutive poles (3 phase), skip the broken span (0 -> 14 middle phase)
+  for(let i=0;i<feederZ.length-1;i++){const z1=feederZ[i],z2=feederZ[i+1];
+    [-1,0,1].forEach(ph=>{
+      if(i===1&&ph===0)return; // broken span handled in buildFault (between z=14 and z=0)
+      span(z1,z2,ph,conductorsMat);
+    });
+  }
+}
+function span(z1,z2,ph,m){
+  const a=new THREE.Vector3(0,POLE.top-0.05,z1+(z1>z2?-0.0:0)+ph*0); // along z
+  // conductor runs along z at x=0, y top, offset per phase in z? phases separated along arm (z dir) -> use x offset instead
+  const y=POLE.top-0.05, xo=ph*0.0;
+  const p1=new THREE.Vector3(ph*1.0,y,z1), p2=new THREE.Vector3(ph*1.0,y,z2);
+  const mid=new THREE.Vector3(ph*1.0,y-1.0,(z1+z2)/2);
+  const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
+  const t=new THREE.Mesh(new THREE.TubeGeometry(curve,16,0.035,6,false),m);t.castShadow=true;scene.add(t);return t;
+}
+function buildFault(){
+  // broken middle-phase span between z=14 and z=0 : two drooping stubs + gap
+  faultBroken=new THREE.Group();
+  const y=POLE.top-0.05;
+  // stub from z=14 pole hanging down
+  const c1=new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,y,14),new THREE.Vector3(0,y-2.2,10),new THREE.Vector3(0,1.6,8.6));
+  faultBroken.add(new THREE.Mesh(new THREE.TubeGeometry(c1,14,0.035,6,false),conductorsMat));
+  // stub from z=0 pole hanging down
+  const c2=new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,y,0),new THREE.Vector3(0,y-2.0,3.5),new THREE.Vector3(0,1.8,5.2));
+  faultBroken.add(new THREE.Mesh(new THREE.TubeGeometry(c2,14,0.035,6,false),conductorsMat));
+  scene.add(faultBroken);
+  // snake draped on the fault pole arm (z=0)
+  snakeMesh=new THREE.Group();
+  const sc=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-0.4,POLE.top-0.3,0),new THREE.Vector3(0.2,POLE.top-0.7,0.3),new THREE.Vector3(0.0,POLE.top-1.6,-0.2));
+  const sm=new THREE.Mesh(new THREE.TubeGeometry(sc,18,0.06,7,false),mat(0x3f7a33,{roughness:.6}));sm.castShadow=true;snakeMesh.add(sm);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8),mat(0x2f5e26));head.position.set(0.0,POLE.top-1.65,-0.2);snakeMesh.add(head);
+  scene.add(snakeMesh);
+  // scorch sprite on insulator
+  scorch=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8),new THREE.MeshBasicMaterial({color:0x111111}));scorch.position.set(0,POLE.top-0.34,0);scene.add(scorch);
+  // repaired conductor (hidden)
+  const cf=new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,y,14),new THREE.Vector3(0,y-1.0,7),new THREE.Vector3(0,y,0));
+  faultFixed=new THREE.Mesh(new THREE.TubeGeometry(cf,18,0.035,6,false),conductorsMat);faultFixed.visible=false;scene.add(faultFixed);
+  // local grounding (hidden until step)
+  groundLocal=new THREE.Group();
+  const gw=cyl(0.014,0.014,POLE.top-1.8,0x33c06a,6);gw.position.set(0.25,(POLE.top-1.8)/2,0);groundLocal.add(gw);
+  const peg=cyl(0.03,0.03,0.6,0xcfcfcf,6);peg.position.set(0.25,-0.1,0.3);groundLocal.add(peg);
+  groundLocal.visible=false;scene.add(groundLocal);
+}
+let garduGroup;
+function buildGardu(){
+  garduGroup=new THREE.Group();
+  // two portal poles
+  [-1,1].forEach(s=>{const g=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.22,8,14),new THREE.MeshStandardMaterial({map:concreteTex(),color:0xccd1d5,roughness:.92}));pole.position.y=4;pole.castShadow=true;g.add(pole);g.position.set(GD.x+s*1.6,0,GD.z);garduGroup.add(g);});
+  // platform beams
+  const beam=box(3.6,0.16,0.3,0x6a7078,{metalness:.4});beam.position.set(GD.x,4.4,GD.z);garduGroup.add(beam);
+  const beam2=box(3.6,0.16,0.3,0x6a7078,{metalness:.4});beam2.position.set(GD.x,3.4,GD.z);garduGroup.add(beam2);
+  // transformer (body + fins + bushings)
+  const trafo=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,1.4,18),mat(0x4a6a86,{metalness:.3,roughness:.5}));trafo.position.set(GD.x,2.6,GD.z+0.1);trafo.castShadow=true;garduGroup.add(trafo);
+  for(let a=0;a<10;a++){const f=box(0.07,1.2,0.18,0x3f5d75);f.position.set(GD.x+Math.cos(a/10*6.28)*0.66,2.6,GD.z+0.1+Math.sin(a/10*6.28)*0.66);f.rotation.y=a/10*6.28;garduGroup.add(f);}
+  // HV bushings (3)
+  [-0.3,0,0.3].forEach(o=>{const bsh=cyl(0.05,0.07,0.4,0x8a6a40,10);bsh.position.set(GD.x+o,3.5,GD.z+0.1);garduGroup.add(bsh);});
+  // LV bushings + PHB-TR box (with NH fuses)
+  const lvbox=box(0.7,1.0,0.4,0x9aa0a6,{metalness:.2});lvbox.position.set(GD.x-1.3,2.2,GD.z+0.2);garduGroup.add(lvbox);
+  garduGroup.nh=[];[-0.2,0,0.2].forEach((o,i)=>{const f=box(0.12,0.3,0.12,i===0?0x8a3030:0x2c2c30);f.position.set(GD.x-1.3+o,2.2,GD.z+0.42);garduGroup.add(f);garduGroup.nh.push(f);});
+  // FCO/cut-out TM (3)
+  [-0.3,0,0.3].forEach(o=>{const ins=cyl(0.05,0.06,0.5,0x7a5a36,10);ins.position.set(GD.x+o,5.1,GD.z);ins.rotation.z=0.35;garduGroup.add(ins);const tube=cyl(0.045,0.045,0.55,0x2a2d31,8);tube.position.set(GD.x+o+0.08,5.25,GD.z);tube.rotation.z=0.35;garduGroup.add(tube);});
+  // arresters
+  [-0.4,0.4].forEach(o=>{const g=new THREE.Group();for(let s=0;s<4;s++){const d=cyl(0.05,0.05,0.06,0x4a4f55,10);d.position.y=s*0.08;g.add(d);}g.position.set(GD.x+o,4.6,GD.z-0.2);garduGroup.add(g);});
+  // ground wire
+  const gw=cyl(0.018,0.018,4,0xb08030,6);gw.position.set(GD.x+1.55,2,GD.z);garduGroup.add(gw);
+  scene.add(garduGroup);
+  // target band & gardu marker handled in loop
+  targetBand=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.04,8,28),new THREE.MeshBasicMaterial({color:0x36d1dc,transparent:true,opacity:.8}));targetBand.rotation.x=Math.PI/2;targetBand.visible=false;scene.add(targetBand);
+}
+
+function buildChar(){
+  char=new THREE.Group();
+  const skin=0xe0a878, vest=0xff8c1a, dark=0x2b2f36, helm=0xffc022, glove=0xf0c040, belt=0x3a2c1a;
+  charParts.legL=box(0.26,0.72,0.26,dark);charParts.legL.position.set(-0.16,0.36,0);char.add(charParts.legL);
+  charParts.legR=box(0.26,0.72,0.26,dark);charParts.legR.position.set(0.16,0.36,0);char.add(charParts.legR);
+  const bL=box(0.28,0.16,0.34,0x16181c);bL.position.set(-0.16,0.08,0.04);char.add(bL);const bR=box(0.28,0.16,0.34,0x16181c);bR.position.set(0.16,0.08,0.04);char.add(bR);
+  const torso=box(0.66,0.74,0.36,vest);torso.position.set(0,1.08,0);char.add(torso);
+  const stripe=box(0.68,0.13,0.38,0xf2f2f2);stripe.position.set(0,1.02,0);char.add(stripe);
+  const beltM=box(0.7,0.12,0.4,belt);beltM.position.set(0,0.74,0);char.add(beltM);
+  const pouch=box(0.16,0.18,0.1,0x241a10);pouch.position.set(0.3,0.7,0.2);char.add(pouch);
+  charParts.armL=new THREE.Group();let aL=box(0.2,0.64,0.2,skin);aL.position.y=-0.32;charParts.armL.add(aL);let gL=box(0.22,0.17,0.24,glove);gL.position.y=-0.68;charParts.armL.add(gL);charParts.armL.position.set(-0.43,1.40,0);char.add(charParts.armL);
+  charParts.armR=new THREE.Group();let aR=box(0.2,0.64,0.2,skin);aR.position.y=-0.32;charParts.armR.add(aR);let gR=box(0.22,0.17,0.24,glove);gR.position.y=-0.68;charParts.armR.add(gR);charParts.armR.position.set(0.43,1.40,0);char.add(charParts.armR);
+  const head=box(0.4,0.42,0.4,skin);head.position.set(0,1.68,0);char.add(head);
+  const face=box(0.18,0.07,0.03,0x2a2d31);face.position.set(0,1.68,0.205);char.add(face);
+  const hat=new THREE.Mesh(new THREE.SphereGeometry(0.27,14,10,0,Math.PI*2,0,Math.PI/2),mat(helm));hat.position.set(0,1.9,0);hat.castShadow=true;char.add(hat);
+  const brim=cyl(0.3,0.3,0.04,helm,16);brim.position.set(0,1.9,0.06);char.add(brim);
+  char.position.set(charPos.x,0,charPos.z);scene.add(char);
+  charShadow=new THREE.Mesh(new THREE.CircleGeometry(0.45,18),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32}));charShadow.rotation.x=-Math.PI/2;charShadow.position.y=0.02;scene.add(charShadow);
+}
+
+/* controls */
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE'){eHeld=true;onInteract();}if(e.code==='Space'){e.preventDefault();togglePanjat();}});
+addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE')eHeld=false;});
+let drag=false,lx=0,ly=0;
+canvas.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;});
+addEventListener('mouseup',()=>drag=false);
+addEventListener('mousemove',e=>{if(drag){camYaw-=(e.clientX-lx)*0.005;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(e.clientY-ly)*0.004));lx=e.clientX;ly=e.clientY;}});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.max(4,Math.min(16,camDist+e.deltaY*0.01));},{passive:false});
+let joyVec={x:0,y:0},joyId=-1,lookId=-1,lastLook={x:0,y:0};
+const joy=$('joy'),knob=$('joyKnob');
+function setKnob(dx,dy){knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}
+if(isTouch){
+  joy.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;e.preventDefault();},{passive:false});
+  addEventListener('touchstart',e=>{for(const t of e.changedTouches){const r=joy.getBoundingClientRect();const inJ=t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;if(!inJ&&lookId<0&&t.clientX>innerWidth*0.42&&t.clientY<innerHeight*0.72){lookId=t.identifier;lastLook={x:t.clientX,y:t.clientY};}}},{passive:false});
+  addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier===joyId){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=t.clientX-cx,dy=t.clientY-cy;const mg=Math.hypot(dx,dy),mx=46;if(mg>mx){dx*=mx/mg;dy*=mx/mg;}setKnob(dx,dy);joyVec={x:dx/mx,y:dy/mx};}else if(t.identifier===lookId){camYaw-=(t.clientX-lastLook.x)*0.006;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(t.clientY-lastLook.y)*0.005));lastLook={x:t.clientX,y:t.clientY};}}e.preventDefault();},{passive:false});
+  addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===joyId){joyId=-1;joyVec={x:0,y:0};setKnob(0,0);}if(t.identifier===lookId)lookId=-1;}});
+}
+
+function dist(a,b){return Math.hypot(charPos.x-a,charPos.z-b);}
+function nearFault(){return dist(FP.x,FP.z)<2.6;}
+function nearGardu(){return dist(GD.x,GD.z)<3.2;}
+function togglePanjat(){
+  if(!started||inspectMode)return;
+  if(!attached){if(nearFault()){attached=true;charPos.x=FP.x;charPos.z=FP.z+0.8;charYaw=Math.PI;climbPose(true);setStat('DI TIANG','var(--cyan)');toast('Memanjat. Pakai ▲NAIK/▼TURUN atau W/S.','good');sayInstr('Kait harness ke tiang. Naik ke cincin biru, lokasi titik gangguan.');}else toast('Mendekatlah ke tiang gangguan untuk memanjat.','bad');}
+  else {charY=0;attached=false;restPose();setStat('DI TANAH');}
+}
+function climbStep(d){if(!attached)return;charY=Math.max(0,Math.min(POLE.top-1.6,charY+d));if(charY<0.05){attached=false;restPose();setStat('DI TANAH');}else{climbPose(true);setStat('MEMANJAT','var(--cyan)');}}
+$('panjatBtn').addEventListener('click',togglePanjat);
+$('upBtn').addEventListener('click',()=>climbStep(0.9));
+$('dnBtn').addEventListener('click',()=>climbStep(-0.9));
+
+function curS(){return curStep<STEPS.length?STEPS[curStep]:null;}
+function atLoc(s){return s.loc==='fault'?(s.workH>0?(attached&&Math.abs((charY+1.4)-s.workH)<1.3):(nearFault()&&!attached&&charY<0.1)):nearGardu();}
+function inPosition(){const s=curS();return s?atLoc(s):false;}
+function onInteract(){if(!started)return;if(work.state==='ready')return;doKerjakan();}
+function doKerjakan(){const s=curS();if(!s||work.state!=='idle'||inspectMode)return;
+  if(!inPosition()){toast(s.loc==='gardu'?'Pergi ke gardu dulu.':(s.workH>0?'Naik ke cincin biru dulu.':'Dekati tiang gangguan dulu.'),'bad');return;}
+  if(s.type==='inspect'){enterInspect();return;}
+  openQuiz(s);
+}
+function isDone(id){return STEPS.findIndex(x=>x.id===id)<curStep;}
+
+let quizStep=null;
+function openQuiz(s){quizStep=s;$('qTag').textContent='KUIS · '+s.tag;$('qQ').textContent=s.q;const w=$('qOpts');w.innerHTML='';s.opt.forEach((o,i)=>{const b=document.createElement('button');b.className='qopt';b.textContent=o;b.addEventListener('click',()=>answer(i,b));w.appendChild(b);});$('quiz').style.display='flex';}
+function answer(i,btn){
+  if(i===quizStep.ans){btn.classList.add('ok');sayInstr('Tepat! '+quizStep.fn);setTimeout(()=>{$('quiz').style.display='none';
+    if(quizStep.type==='quiz'){finishStep(quizStep);} else {work.state='ready';work.prog=0;toast('Benar! Tahan tombol KERJA untuk mengerjakan.','good');}
+  },550);}
+  else{btn.classList.add('no');toast('Kurang tepat — cermati lagi kondisinya.','bad');sayInstr('Belum tepat. '+quizStep.fn);setTimeout(()=>btn.classList.remove('no'),700);}
+}
+
+/* gardu inspection */
+let gSel=null;
+function enterInspect(){inspectMode=true;garduFixed=false;$('gardu').style.display='block';$('actWrap').style.display='none';buildGList();$('gDetail').innerHTML='Pilih komponen untuk melihat pembacaan & penjelasannya…';$('gFix').style.display='none';$('gDone').classList.remove('on');setStat('INSPEKSI','var(--cyan)');sayInstr('Inspeksi gardu. Klik tiap komponen untuk membaca kondisinya, lalu temukan penyebab gangguan.');}
+function buildGList(){const w=$('gList');w.innerHTML='';GARDU.forEach(g=>{const el=document.createElement('div');el.className='gcomp'+(g.id==='nh'&&g.st==='bad'?' bad':'')+(g._fixed?' fixed':'');el.id='g_'+g.id;
+  const stc=g._fixed?'ok':g.st;const lbl=g._fixed?'OK':(g.st==='ok'?'OK':g.st==='bad'?'GANGGUAN':'PERIKSA');
+  el.innerHTML=`<span class="gn">${g.nm}</span><span class="gst ${stc}">${lbl}</span>`;el.addEventListener('click',()=>selComp(g));w.appendChild(el);});}
+function selComp(g){gSel=g;$('gDetail').innerHTML=`<div class="rd">${g._fixed?'Fasa R: NORMAL · S: baik · T: baik':g.read}</div><div style="margin-top:5px">${g.edu}</div>`;
+  if(g.id==='nh'&&!g._fixed){$('gFix').style.display='block';$('gFix').textContent='🔧 GANTI NH FUSE R';}
+  else $('gFix').style.display='none';
+}
+$('gFix').addEventListener('click',()=>{ if(gSel&&gSel.id==='nh'){gSel._fixed=true;garduFixed=true;
+  const bb=GARDU.find(x=>x.id==='beban');if(bb)bb.read='R: 171 A · S: 175 A · T: 168 A';
+  if(garduGroup&&garduGroup.nh&&garduGroup.nh[0])garduGroup.nh[0].material.color.setHex(0x2c2c30);
+  buildGList();selComp(gSel);toast('✔ NH Fuse R diganti — jurusan R pulih.','good');sayInstr('NH Fuse R diganti dengan rating sama. Arus fasa R kembali normal.');$('gDone').classList.add('on');}});
+$('gDone').addEventListener('click',()=>{ if(!garduFixed){toast('Temukan & ganti dulu komponen yang bermasalah.','bad');return;} inspectMode=false;$('gardu').style.display='none';$('actWrap').style.display='flex';const s=curS();finishStep(s);});
+
+/* hold-to-work */
+$('doBtn').addEventListener('pointerdown',()=>{btnHeld=true;if(work.state==='idle')doKerjakan();});
+$('doBtn').addEventListener('pointerup',()=>btnHeld=false);
+$('doBtn').addEventListener('pointerleave',()=>btnHeld=false);
+
+function finishStep(s){
+  showStepCard(s);
+  if(s.id==='identifikasi'){ /* highlight fault: nothing to add, visuals already shown */ }
+  if(s.id==='amankan'){ if(groundLocal)groundLocal.visible=true; }
+  if(s.id==='perbaikan'){ if(faultBroken)faultBroken.visible=false; if(snakeMesh)snakeMesh.visible=false; if(scorch)scorch.visible=false; if(faultFixed)faultFixed.visible=true; }
+  if(s.id==='normal'){ if(groundLocal)groundLocal.visible=false; normalize(); }
+  else toast('✔ '+s.nm,'good');
+  if(s.workH>0)pulseFx([0,s.workH,0]); else if(s.loc==='fault')pulseFx([0,1.4,0]); else pulseFx([GD.x,2.4,GD.z]);
+  sayInstr(s.fn);
+  curStep++;work.state='idle';work.prog=0;updateTasks();updateHUD();
+  const ns=curS();
+  if(ns)setTimeout(()=>{ const where=ns.loc==='gardu'?'Pergi ke GARDU (penanda biru).':(ns.workH>0?'Panjat tiang gangguan ke cincin biru.':'Menuju TIANG GANGGUAN.'); sayInstr('Berikutnya: '+ns.nm+'. '+where); },1300);
+}
+function normalize(){
+  // energize: light customer windows + add a glow
+  lamps.forEach(w=>{w.material.emissive=new THREE.Color(0xffd070);w.material.color=new THREE.Color(0xffe9a8);w.material.emissiveIntensity=0;});
+  fxList.push({kind:'energize',t:0});
+  setStat('NORMAL','var(--green)');toast('⚡ PENORMALAN BERHASIL — pelanggan menyala!','good');
+  setTimeout(showWin,2600);
+}
+
+function restPose(){if(!charParts.armL)return;charParts.armL.rotation.x=0;charParts.armR.rotation.x=0;charParts.legL.rotation.x=0;charParts.legR.rotation.x=0;}
+function climbPose(on){if(!charParts.armL)return;if(on){charParts.armL.rotation.x=-2.2;charParts.armR.rotation.x=-2.2;charParts.legL.rotation.x=0.5;charParts.legR.rotation.x=-0.5;}else restPose();}
+function workPose(t){if(!charParts.armR)return;charParts.armR.rotation.x=-2.4+Math.sin(t*14)*0.35;charParts.armL.rotation.x=attached?-2.0:-1.3;}
+
+function pulseFx(p){const ring=new THREE.Mesh(new THREE.RingGeometry(0.1,0.18,24),new THREE.MeshBasicMaterial({color:0x3ce07a,transparent:true,side:THREE.DoubleSide}));ring.position.set(p[0],p[1],p[2]);scene.add(ring);fxList.push({m:ring,t:0,kind:'ring'});}
+function updateFx(dt){for(let i=fxList.length-1;i>=0;i--){const f=fxList[i];f.t+=dt;
+  if(f.kind==='ring'){f.m.scale.setScalar(1+f.t*5);f.m.material.opacity=Math.max(0,.8-f.t*1.4);f.m.lookAt(camera.position);if(f.t>.7){scene.remove(f.m);fxList.splice(i,1);}}
+  else if(f.kind==='energize'){const k=Math.min(1,f.t/1.5);lamps.forEach(w=>w.material.emissiveIntensity=k);if(f.t>1.6)fxList.splice(i,1);}
+}}
+
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(started&&!inspectMode){moveUpdate(dt);workUpdate(dt);}
+  if(char){char.position.set(charPos.x,charY,charPos.z);char.rotation.y=charYaw;
+    if(charShadow){charShadow.position.set(charPos.x,0.02,charPos.z);charShadow.material.opacity=Math.max(0.05,0.32-charY*0.03);}
+    if(moving&&!attached&&work.state!=='holding'){walkPhase+=dt*10;charParts.legL.rotation.x=Math.sin(walkPhase)*0.6;charParts.legR.rotation.x=-Math.sin(walkPhase)*0.6;charParts.armL.rotation.x=-Math.sin(walkPhase)*0.4;charParts.armR.rotation.x=Math.sin(walkPhase)*0.4;}
+    else if(!attached&&work.state==='idle'&&!inspectMode)restPose();
+  }
+  const s=curS();
+  // target band
+  if(started&&s&&!inspectMode){targetBand.visible=true;const okp=inPosition();targetBand.material.color.setHex(okp?0x3ce07a:0x36d1dc);targetBand.material.opacity=0.45+0.3*Math.sin(performance.now()/250);
+    if(s.loc==='gardu')targetBand.position.set(GD.x,0.1,GD.z);
+    else if(s.workH>0)targetBand.position.set(FP.x,s.workH,FP.z);
+    else targetBand.position.set(FP.x,0.1,FP.z);
+  } else if(targetBand)targetBand.visible=false;
+  // camera (normal or gardu zoom)
+  if(inspectMode){
+    const ct=new THREE.Vector3(GD.x-0.2,3.0,GD.z+0.1);
+    const cp=new THREE.Vector3(GD.x-0.2,3.4,GD.z+4.6);
+    camera.position.lerp?camera.position.lerp(cp,0.08):camera.position.copy(cp);camera.lookAt(ct);
+  } else {
+    const tgt=new THREE.Vector3(charPos.x,charY+1.4,charPos.z);
+    const off=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch)).multiplyScalar(camDist);
+    camera.position.copy(tgt).add(off);camera.lookAt(tgt);
+  }
+  if(started){updateHUD();updateActBtn();}
+  updateFx(dt);renderer.render(scene,camera);
+}
+function moveUpdate(dt){
+  if(attached){if(keys['KeyW']||keys['ArrowUp'])climbS(2.4*dt);if(keys['KeyS']||keys['ArrowDown'])climbS(-2.4*dt);if(isTouch&&Math.abs(joyVec.y)>0.3)climbS(-joyVec.y*2.2*dt);moving=false;return;}
+  let f=0,s=0;
+  if(keys['KeyW']||keys['ArrowUp'])f+=1;if(keys['KeyS']||keys['ArrowDown'])f-=1;if(keys['KeyA']||keys['ArrowLeft'])s-=1;if(keys['KeyD']||keys['ArrowRight'])s+=1;
+  if(isTouch&&(Math.abs(joyVec.x)>0.05||Math.abs(joyVec.y)>0.05)){f+=-joyVec.y;s+=joyVec.x;}
+  moving=!!(f||s);if(!moving)return;
+  const fwdX=-Math.sin(camYaw),fwdZ=-Math.cos(camYaw),rgtX=-Math.cos(camYaw),rgtZ=Math.sin(camYaw);
+  let mx=fwdX*f+rgtX*s,mz=fwdZ*f+rgtZ*s;const ml=Math.hypot(mx,mz)||1;mx/=ml;mz/=ml;
+  const spd=4.6*dt;charPos.x+=mx*spd;charPos.z+=mz*spd;charYaw=Math.atan2(mx,mz);
+  // avoid poles
+  [[FP.x,FP.z],[GD.x-1.6,GD.z],[GD.x+1.6,GD.z]].concat(feederZ.map(z=>[0,z])).forEach(pp=>{const d=Math.hypot(charPos.x-pp[0],charPos.z-pp[1]);if(d<0.85){const a=Math.atan2(charPos.z-pp[1],charPos.x-pp[0]);charPos.x=pp[0]+Math.cos(a)*0.85;charPos.z=pp[1]+Math.sin(a)*0.85;}});
+}
+function climbS(d){charY=Math.max(0,Math.min(POLE.top-1.6,charY+d));climbPose(charY>0.05);if(charY<0.05){attached=false;restPose();setStat('DI TANAH');}else setStat(d>0?'MEMANJAT':'DI TIANG','var(--cyan)');}
+function workUpdate(dt){
+  if(work.state==='ready'||work.state==='holding'){
+    const holding=(eHeld||btnHeld)&&inPosition();
+    if(holding){work.state='holding';work.prog=Math.min(1,work.prog+dt/1.5);workPose(performance.now()/1000);if(work.prog>=1)finishStep(curS());}
+    else if(work.state==='holding')work.state='ready';
+  }
+}
+
+function idn(n,d=0){return n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function updateHUD(){const s=curS();$('vLoc').textContent=s?(s.loc==='gardu'?'GARDU':'SUTM'):'—';$('vP').textContent=curStep+' / '+STEPS.length;$('progBar').style.width=(curStep/STEPS.length*100)+'%';}
+function updateActBtn(){
+  const b=$('doBtn'),tx=$('doTxt'),fill=$('doFill');const s=curS();
+  if(!s){b.classList.add('dis');tx.textContent='✔ SELESAI';fill.style.width='0%';return;}
+  $('panjatBtn').classList.toggle('dis',!(nearFault()||attached)|| s.loc==='gardu');
+  $('upBtn').classList.toggle('dis',!attached);$('dnBtn').classList.toggle('dis',!attached);
+  if(work.state==='ready'||work.state==='holding'){b.classList.remove('dis');tx.textContent=work.state==='holding'?('⚙️ BEKERJA… '+Math.round(work.prog*100)+'%'):'⬇️ TAHAN UNTUK BEKERJA';fill.style.width=(work.prog*100)+'%';return;}
+  fill.style.width='0%';
+  if(inPosition()){b.classList.remove('dis');tx.textContent=s.type==='inspect'?'🔍 INSPEKSI GARDU':(s.type==='quiz'?'▶ PERIKSA: '+s.nm.split(' ').slice(0,2).join(' '):'▶ KERJAKAN: '+s.nm.split(' ').slice(0,2).join(' '));}
+  else{b.classList.add('dis');tx.textContent=s.loc==='gardu'?'Pergi ke GARDU':(s.workH>0?'Panjat ke cincin biru':'Dekati tiang gangguan');}
+}
+function updateTasks(){const w=$('taskList');w.innerHTML='';STEPS.forEach((s,i)=>{const cls=i<curStep?'done':i===curStep?'cur':'';const el=document.createElement('div');el.className='task '+cls;el.innerHTML=`<span class="bx">${i<curStep?'✓':''}</span><span class="nm">${i+1}. ${s.nm}</span>`;w.appendChild(el);});}
+function setStat(t,col){$('statTxt').textContent=t;$('statDot').style.background=col||'var(--amber)';}
+let cardT;function showStepCard(s){$('scNo').textContent=STEPS.indexOf(s)+1;$('scNm').textContent=s.nm;$('scFn').textContent=s.fn;$('scAlat').innerHTML=s.alat.map(a=>'• '+a).join('<br>');$('scBahan').innerHTML=s.bahan.map(b=>'• '+b).join('<br>');$('scTip').textContent='💡 '+s.tip;$('stepcard').style.display='block';clearTimeout(cardT);cardT=setTimeout(()=>$('stepcard').style.display='none',8500);}
+function showCurrentCard(){const s=curS();if(s)showStepCard(s);}
+let toastT;function toast(t,k){const el=$('toast');el.textContent=t;el.className='show '+(k||'');clearTimeout(toastT);toastT=setTimeout(()=>el.className=el.className.replace('show',''),2600);}
+let subT;function sayInstr(t){const el=$('sub');$('subTxt').textContent=t;el.classList.add('show');clearTimeout(subT);subT=setTimeout(()=>el.classList.remove('show'),Math.max(3000,t.length*42));if(!muted&&'speechSynthesis'in window){try{const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';u.rate=1.03;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}}
+
+$('startBtn').addEventListener('click',()=>{$('start').style.display='none';$('apd').style.display='flex';buildAPD();});
+function buildAPD(){const pool=$('apdPool');pool.innerHTML='';APD.equipped=0;APD.forEach(a=>{const el=document.createElement('div');el.className='apd-item';el.id='apd_'+a.id;el.innerHTML=`<span class="ic">${a.ic}</span><span>${a.nm}<small>${a.fn}</small></span>`;el.addEventListener('click',()=>equipAPD(a,el));pool.appendChild(el);});}
+function equipAPD(a,el){el.classList.add('done');el.innerHTML+='<span class="chk">✓</span>';const p=$(a.part);if(p)p.classList.add('on');if(a.id==='sarung')$('pGlovesR').classList.add('on');APD.equipped=(APD.equipped||0)+1;if(APD.equipped>=APD.length)$('apdGo').style.display='inline-block';}
+$('apdGo').addEventListener('click',()=>{$('apd').style.display='none';beginGame();});
+function beginGame(){started=true;updateTasks();updateHUD();setStat('PADAM','var(--red)');$('actWrap').style.display='flex';if(isTouch)$('joy').style.display='block';showCurrentCard();
+  sayInstr('Penyulang trip, sebagian pelanggan padam. Susuri jaringan menuju tiang gangguan yang ditandai cincin biru, lalu periksa kondisinya.');
+  toast('Menuju lokasi gangguan (penanda biru).','good');}
+function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Gangguan: <b>SUTM putus (binatang) + NH Fuse R putus</b><br>K3: <b style="color:var(--green)">APD lengkap · pembumian lokal</b>`;}
+$('winBtn').addEventListener('click',()=>location.reload());
+$('bReset').addEventListener('click',()=>location.reload());
+$('bMute').addEventListener('click',()=>{muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';if(muted&&'speechSynthesis'in window)speechSynthesis.cancel();});
+$('bCam').addEventListener('click',()=>{camYaw=Math.PI;camPitch=0.40;camDist=9;toast('Kamera diatur ulang.','');});
+function buildInsight(){const g=$('insGrid');g.innerHTML='';
+  STEPS.forEach((s,i)=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${i+1}. ${s.nm}</b><span class="tag">${s.tag}</span><p>${s.fn}</p><div class="ab"><span class="l2">🧰 Alat:</span> ${s.alat.join(', ')}<br><span class="l">📦 Bahan:</span> ${s.bahan.join(', ')}<br><span style="color:var(--amber)">💡 ${s.tip}</span></div>`;g.appendChild(d);});
+  GARDU.forEach(c=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${c.nm}</b><span class="tag">GARDU</span><p>${c.edu}</p>`;g.appendChild(d);});
+  APD.forEach(a=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${a.ic} ${a.nm}</b><span class="tag">APD</span><p>${a.fn}</p>`;g.appendChild(d);});}
+$('bInsight').addEventListener('click',()=>{buildInsight();$('insight').style.display='flex';});
+$('insClose').addEventListener('click',()=>$('insight').style.display='none');
+
+try{ if(window.THREE){init();loop();} else {document.body.innerHTML='<div style="color:#fff;padding:40px;font-family:monospace">Gagal memuat Three.js. Periksa koneksi.</div>';} }
+catch(err){console.error(err);}
+</script>
+</body>
+</html>

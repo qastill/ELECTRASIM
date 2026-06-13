@@ -9,6 +9,7 @@ Dibagi menjadi tiga tahap rantai pasok tenaga listrik:
 | 2 | **Transmisi** — Penjelajahan gardu induk 150/20 kV orang-pertama, misi keselamatan kerja (APD/K3). | `transmisi.html` | ✅ Siap |
 | 2 | **Transmisi** — SimDispatch: konsol Pusat Pengatur Beban (P2B) Jamali, economic dispatch & merit order, kendali frekuensi/cadangan (N-1). | `dispatch.html` | ✅ Siap |
 | 3 | **Distribusi** — Konstruksi SUTM 20 kV: game 3D orang-pertama — kenakan APD, panjat tiang, kuis tiap langkah, pasang travers/isolator/konduktor/proteksi/grounding hingga energize. | `distribusi.html` | ✅ Siap |
+| 3 | **Distribusi** — Yantek (Pelayanan Teknik): penanganan gangguan SUTM (kabel putus akibat binatang) + inspeksi gardu zoom-in & ganti NH Fuse, lalu penormalan tegangan. | `yantek.html` | ✅ Siap |
 
 `index.html` adalah halaman menu utama yang menautkan ketiga modul di atas.
 
