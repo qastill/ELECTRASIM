@@ -969,5 +969,21 @@ ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('sh
 try{if(D.auto&&!sessionStorage.getItem('lrn_'+D.t)){sessionStorage.setItem('lrn_'+D.t,'1');setTimeout(open,700);}}catch(e){}
 render();
 })();</script>
+<!-- ===== WHY-LAYER (pelatih dinamis) ===== -->
+<style>#coachBox{position:fixed;left:14px;bottom:14px;z-index:135;max-width:300px;background:#0c1e3c;border:1px solid #2b6fd6;border-radius:10px;padding:9px 12px;font-family:var(--mono);font-size:11px;line-height:1.45;color:#cfe0f5;box-shadow:0 6px 18px #0008;display:none}#coachBox b{color:#8fd0ff}#coachBox .ch{display:flex;justify-content:space-between;gap:8px;font-size:9px;letter-spacing:1px;color:#5fd0ff;font-weight:700;margin-bottom:4px}#coachBox .cx{cursor:pointer;color:#5d749a}</style>
+<div id="coachBox"><div class="ch"><span>💡 PELATIH VOLTA</span><span class="cx" id="coachX">tutup ✕</span></div><div id="coachMsg"></div></div>
+<script>(function(){
+var box=document.getElementById('coachBox'),msg=document.getElementById('coachMsg');var dismissed=false;
+document.getElementById('coachX').onclick=function(){box.style.display='none';dismissed=true;setTimeout(function(){dismissed=false;},20000);};
+function pick(){ if(typeof S==='undefined')return null; var fd=Math.abs(S.freq-50);
+  if(S.shedMW>1)return '<b>⛔ Pelepasan beban '+Math.round(S.shedMW)+' MW.</b> Sebab: pasokan jauh di bawah beban. Aksi: SEGERA tambah pasokan — komit unit cepat (PLTA/peaker).';
+  if(fd>0.2)return '<b>Frekuensi '+S.freq.toFixed(2).replace('.',',')+' Hz.</b> '+(S.freq<50?'Pasokan kurang — naikkan pembangkitan.':'Pasokan berlebih — turunkan pembangkit termal/peaker.');
+  if(S.reserveMW<1200)return '<b>Cadangan '+Math.round(S.reserveMW)+' MW (< N-1).</b> Sebab: unit dibebani penuh. Aksi: komit unit tambahan atau kurangi pembebanan penuh agar ada headroom.';
+  if(S.bpp>1400)return '<b>BPP '+Math.round(S.bpp)+' Rp/kWh mahal.</b> Sebab: terlalu banyak peaker. Aksi: perbanyak unit murah (PLTU/PLTP/hidro) & maksimalkan EBT.';
+  if(S.reShare<15)return '<b>Pangsa EBT '+Math.round(S.reShare)+'% rendah.</b> Aksi: maksimalkan serapan surya/bayu/hidro selagi tersedia.';
+  return null;
+}
+setInterval(function(){ if(dismissed)return; var m=pick(); if(m){msg.innerHTML=m;box.style.display='block';} else {box.style.display='none';} },1500);
+})();</script>
 </body>
 </html>

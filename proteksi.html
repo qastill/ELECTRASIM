@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimProteksi — Koordinasi Relai OCR 20 kV</title>
+<style>
+  :root{--bg0:#070d18;--line:#244168;--line2:#36588a;--ink:#cfe0f5;--ink-dim:#8aa2c4;--ink-faint:#5d749a;
+    --accent:#5fa8ff;--accent2:#8fd0ff;--good:#57d98a;--warn:#ffcf5f;--bad:#ff6b6b;--btn-edge:#3a608f;
+    --mono:"SFMono-Regular",ui-monospace,"Cascadia Mono","DejaVu Sans Mono",Menlo,Consolas,monospace;}
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 700px at 70% -10%,#14305c33,transparent 60%),linear-gradient(180deg,#060b16,#0a1322 60%,#070d18);color:var(--ink);font-family:var(--mono);font-size:13px;overflow:hidden}
+  .wrap{height:100vh;display:flex;flex-direction:column;padding:10px;gap:8px}
+  .topbar{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#0f1e38,#0a1528);padding:8px 14px}
+  .homebtn{border:1px solid var(--line2);background:#13284a;color:var(--ink-dim);letter-spacing:2px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;text-decoration:none;font-size:12px}
+  .homebtn:hover{color:var(--accent2);background:#163058}
+  .brand{margin-left:auto;letter-spacing:3px;font-weight:700;color:var(--ink-dim);font-size:13px}
+  .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:8px;flex:1;min-height:0}
+  .panel{border:1px solid var(--line);border-radius:8px;background:linear-gradient(180deg,#0b1730,#091222);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel-hd{padding:9px 14px;border-bottom:1px solid var(--line);letter-spacing:3px;font-weight:700;color:var(--accent2);font-size:13px}
+  .panel-bd{flex:1;min-height:0;overflow:auto;padding:12px}
+  #dia{width:100%;height:auto;background:#04101f;border:1px solid var(--line);border-radius:8px}
+  .verdict{margin-top:10px;border:1px solid var(--line);border-radius:8px;padding:12px;background:#0a1830aa;font-size:13px;line-height:1.5}
+  .verdict.ok{border-color:#2a5a3a}.verdict.bad{border-color:#5a2530}
+  .verdict b{color:var(--ink)}.verdict .big{font-size:15px;font-weight:800}
+  .card{border:1px solid var(--line);border-radius:8px;background:#0a1730;padding:13px;margin-bottom:11px}
+  .card h3{margin:0 0 10px;letter-spacing:2px;color:var(--accent2);font-size:13px;font-weight:700}
+  .relayblk{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#0c1c38}
+  .relayblk h4{margin:0 0 8px;font-size:12px;letter-spacing:1px;display:flex;justify-content:space-between}
+  .sld{margin:8px 0}
+  .lab{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px;color:var(--ink-dim)}
+  .lab .v{color:var(--ink);font-weight:700;font-size:12px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:5px;background:linear-gradient(90deg,#2b6fd6 var(--p,50%),#13243f var(--p,50%));outline:none;border:1px solid #1c3358}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:4px;background:linear-gradient(180deg,#dce9ff,#9cc2f0);border:1px solid #6fa8ef;cursor:pointer}
+  .seg{display:flex;gap:6px;margin:6px 0 2px}
+  .seg .b{flex:1;border:1px solid var(--btn-edge);border-radius:6px;background:#0e1f3a;color:var(--ink-dim);font-size:11px;font-weight:700;padding:8px;text-align:center;cursor:pointer}
+  .seg .b.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff;border-color:#6fa8ef}
+  .pill{border:1px solid var(--btn-edge);border-radius:6px;background:linear-gradient(180deg,#16294a,#0f1f3a);color:var(--ink-dim);letter-spacing:1px;font-weight:700;font-size:12px;padding:11px;cursor:pointer;text-align:center;width:100%}
+  .pill.go{background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400;border:none}
+  .hint{color:var(--ink-faint);font-size:11px;line-height:1.5;margin-top:8px}.hint b{color:var(--ink-dim)}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .stat{border:1px solid var(--line);border-radius:7px;padding:9px 10px;background:#0c1c38}
+  .stat .k{color:var(--ink-faint);font-size:10px}.stat .v{font-weight:700;font-size:15px;margin-top:4px;color:var(--accent2)}
+  /* learning layer */
+  .lrn-fab{position:fixed;right:14px;bottom:14px;z-index:140;background:#16315a;border:1px solid #2b6fd6;color:#8fd0ff;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px;padding:9px 14px;border-radius:10px;cursor:pointer;box-shadow:0 6px 18px #0007}
+  .lrn-ov{position:fixed;inset:0;z-index:240;background:#020713e0;display:none;align-items:center;justify-content:center;padding:18px}.lrn-ov.show{display:flex}
+  .lrn-card{max-width:560px;width:100%;max-height:88vh;overflow:auto;background:linear-gradient(180deg,#0e1f3c,#0a1628);border:1px solid #36588a;border-radius:14px;padding:18px 20px;font-family:system-ui,sans-serif;color:#cfe0f5}
+  .lrn-card h2{margin:0;color:#8fd0ff;font-size:17px}.lrn-sub{font-size:11px;color:#5d749a;margin-bottom:10px}
+  .lrn-tabs{display:flex;gap:6px;margin:10px 0 14px}.lrn-tab{flex:1;text-align:center;font-size:11px;font-weight:700;padding:8px 4px;border-radius:8px;border:1px solid #244168;background:#0e1f3a;color:#8aa2c4;cursor:pointer}
+  .lrn-tab.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff;border-color:#6fa8ef}
+  .lrn-li{font-size:13px;line-height:1.55;color:#cbd5e0;margin:7px 0;padding-left:22px;position:relative}.lrn-li:before{content:"🎯";position:absolute;left:0}.lrn-li.rc:before{content:"⚡"}
+  .lrn-q{font-size:15px;font-weight:700;margin:4px 0 10px;color:#eaf0f6}
+  .lrn-opt{display:block;width:100%;text-align:left;background:#161d27;border:1px solid #244168;color:#eaf0f6;font-size:14px;font-weight:600;padding:12px 14px;border-radius:10px;margin:7px 0;cursor:pointer}
+  .lrn-opt:hover{border-color:#36d1dc}.lrn-opt.ok{border-color:#3ce07a;background:rgba(60,224,122,.12)}.lrn-opt.no{border-color:#ff5a5a;background:rgba(255,90,90,.1)}
+  .lrn-exp{font-size:12.5px;color:#aab6c4;line-height:1.5;margin:8px 0;padding:10px;background:#0c1118;border:1px dashed #244168;border-radius:9px;display:none}.lrn-exp.show{display:block}
+  .lrn-nav{display:flex;gap:8px;margin-top:12px}.lrn-btn{flex:1;font-family:system-ui;font-weight:800;font-size:13px;padding:11px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400}
+  .lrn-btn.sec{background:#16315a;color:#8fd0ff;border:1px solid #2b6fd6}.lrn-score{font-size:22px;font-weight:800;color:#3ce07a;text-align:center;margin:10px 0 4px}
+  @media(max-width:1000px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="homebtn" href="index.html">‹ MENU</a>
+    <span style="letter-spacing:2px;font-weight:700;color:var(--ink-dim)">SKENARIO:</span>
+    <div class="seg" style="margin:0"><div class="b on" id="locF" data-loc="feeder">GANGGUAN PENYULANG (HILIR)</div><div class="b" id="locB" data-loc="bus">GANGGUAN BUS (HULU)</div></div>
+    <div class="brand">SIMPROTEKSI — KOORDINASI RELAI OCR 20 kV</div>
+  </div>
+  <div class="cols">
+    <div class="panel">
+      <div class="panel-hd">DIAGRAM & KURVA WAKTU-ARUS</div>
+      <div class="panel-bd">
+        <svg id="dia" viewBox="0 0 600 360"></svg>
+        <div class="verdict" id="verdict">Atur setelan relai, lalu tekan <b>SUNTIK GANGGUAN</b> untuk menguji koordinasi.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-hd">SETELAN RELAI (IDMT — Standard Inverse)</div>
+      <div class="panel-bd">
+        <div class="card">
+          <div class="relayblk">
+            <h4><span style="color:#ff9f5f">R1 · RELAI HULU (Incoming 20 kV)</span><span id="r1stat" style="color:var(--ink-faint)">—</span></h4>
+            <div class="sld"><div class="lab"><span>Arus Setelan (Pickup) <span title="Arus pickup harus di atas arus beban maksimum">ⓘ</span></span><span class="v"><span id="r1pV">800</span> A</span></div><input type="range" id="r1p" min="400" max="2000" step="50" value="800"></div>
+            <div class="sld"><div class="lab"><span>TMS (Time Multiplier)</span><span class="v" id="r1tV">0,10</span></div><input type="range" id="r1t" min="5" max="50" step="1" value="10"></div>
+          </div>
+          <div class="relayblk">
+            <h4><span style="color:#5fd0ff">R2 · RELAI HILIR (Outgoing/Penyulang)</span><span id="r2stat" style="color:var(--ink-faint)">—</span></h4>
+            <div class="sld"><div class="lab"><span>Arus Setelan (Pickup)</span><span class="v"><span id="r2pV">600</span> A</span></div><input type="range" id="r2p" min="200" max="1400" step="50" value="600"></div>
+            <div class="sld"><div class="lab"><span>TMS (Time Multiplier)</span><span class="v" id="r2tV">0,30</span></div><input type="range" id="r2t" min="5" max="50" step="1" value="30"></div>
+          </div>
+          <div class="seg"><div class="pill go" id="btnFault">⚡ SUNTIK GANGGUAN</div></div>
+          <div class="seg" style="margin-top:8px"><div class="pill" id="btnAuto">AUTO-KOORDINASI</div><div class="pill" id="btnReset">RESET</div></div>
+          <div class="hint">Beban maks penyulang ≈ <b>400 A</b>. Arus gangguan: penyulang ≈ <b>2.400 A</b>, bus ≈ <b>4.200 A</b>. Target: pada gangguan penyulang, <b>R2 trip lebih dulu</b> dari R1 dengan <b>margin grading ≥ 0,3 s</b> (selektif).</div>
+        </div>
+        <div class="card">
+          <h3>PEMBACAAN</h3>
+          <div class="readout">
+            <div class="stat"><div class="k">I GANGGUAN</div><div class="v" id="oIf">— A</div></div>
+            <div class="stat"><div class="k">MARGIN GRADING</div><div class="v" id="oMar">— s</div></div>
+            <div class="stat"><div class="k">t-R2 (HILIR)</div><div class="v" id="oT2">— s</div></div>
+            <div class="stat"><div class="k">t-R1 (HULU)</div><div class="v" id="oT1">— s</div></div>
+          </div>
+          <div class="hint" id="coach">Atur pickup di atas beban (400 A) tapi di bawah arus gangguan, lalu atur TMS agar relai hilir lebih cepat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="lrn-fab" id="lrnFab">🎓 BELAJAR &amp; UJI</button>
+<div class="lrn-ov" id="lrnOv"><div class="lrn-card">
+  <h2 id="lrnTitle">Modul Belajar</h2><div class="lrn-sub" id="lrnSub"></div>
+  <div class="lrn-tabs"><div class="lrn-tab on" data-t="obj">🎯 TUJUAN</div><div class="lrn-tab" data-t="quiz">🧠 UJI PAHAM</div><div class="lrn-tab" data-t="recap">⚡ REKAP</div></div>
+  <div id="lrnBody"></div>
+  <div class="lrn-nav"><button class="lrn-btn sec" id="lrnClose">TUTUP</button></div>
+</div></div>
+
+<script>
+var $=function(id){return document.getElementById(id);};
+var S={loc:'feeder',r1p:800,r1t:0.10,r2p:600,r2t:0.30,If:0};
+var IF={feeder:2400,bus:4200}, LOADMAX=400, MARGIN=0.30;
+function idmt(I,Ip,TMS){ if(I<=Ip) return Infinity; var psm=I/Ip; return TMS*0.14/(Math.pow(psm,0.02)-1); }
+function fmt(t){ return t===Infinity? '∞ (tak trip)' : t.toFixed(2).replace('.',',')+' s'; }
+function num(n){ return Math.round(n).toLocaleString('id-ID'); }
+
+['r1p','r1t','r2p','r2t'].forEach(function(id){
+  var el=$(id); el.addEventListener('input',function(){
+    var v=parseFloat(el.value); var p=(v-el.min)/(el.max-el.min)*100; el.style.setProperty('--p',p+'%');
+    if(id==='r1p'){S.r1p=v;$('r1pV').textContent=num(v);}
+    if(id==='r2p'){S.r2p=v;$('r2pV').textContent=num(v);}
+    if(id==='r1t'){S.r1t=v/100;$('r1tV').textContent=(v/100).toFixed(2).replace('.',',');}
+    if(id==='r2t'){S.r2t=v/100;$('r2tV').textContent=(v/100).toFixed(2).replace('.',',');}
+    draw(); coach();
+  });
+  el.dispatchEvent(new Event('input'));
+});
+document.querySelectorAll('.seg .b[data-loc]').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('.seg .b[data-loc]').forEach(function(x){x.classList.remove('on');});b.classList.add('on');S.loc=b.dataset.loc;draw();coach();};});
+
+$('btnReset').onclick=function(){ $('r1p').value=800;$('r1t').value=10;$('r2p').value=600;$('r2t').value=30;
+  ['r1p','r1t','r2p','r2t'].forEach(function(id){$(id).dispatchEvent(new Event('input'));});
+  $('verdict').className='verdict';$('verdict').innerHTML='Setelan direset. Coba lagi.'; };
+
+$('btnAuto').onclick=function(){ // contoh koordinasi selektif yang benar
+  $('r2p').value=600;$('r1p').value=900;$('r2t').value=12;$('r1t').value=30;
+  ['r1p','r1t','r2p','r2t'].forEach(function(id){$(id).dispatchEvent(new Event('input'));});
+  runFault(); };
+
+$('btnFault').onclick=runFault;
+
+function calc(){
+  var If=IF[S.loc]; S.If=If;
+  var t2 = (S.loc==='feeder') ? idmt(If,S.r2p,S.r2t) : Infinity; // R2 hanya lihat gangguan di penyulang
+  var t1 = idmt(If,S.r1p,S.r1t);
+  return {If:If,t1:t1,t2:t2};
+}
+function runFault(){
+  var c=calc();
+  $('oIf').textContent=num(c.If)+' A';
+  $('oT2').textContent=fmt(c.t2); $('oT1').textContent=fmt(c.t1);
+  var v=$('verdict'); var margin;
+  if(S.loc==='feeder'){
+    margin=c.t1-c.t2; $('oMar').textContent=isFinite(margin)?margin.toFixed(2).replace('.',',')+' s':'—';
+    if(!isFinite(c.t2)){ v.className='verdict bad'; v.innerHTML='<div class="big" style="color:var(--bad)">❌ R2 TAK MENDETEKSI</div>Pickup R2 ('+num(S.r2p)+' A) di atas arus gangguan. Turunkan pickup R2 di bawah '+num(c.If)+' A.'; trip(null); }
+    else if(c.t2 < c.t1 - MARGIN + 1e-6){ v.className='verdict ok'; v.innerHTML='<div class="big" style="color:var(--good)">✔ SELEKTIF</div>R2 (hilir) trip dulu di '+fmt(c.t2)+', R1 (hulu) cadangan di '+fmt(c.t1)+'. Margin '+margin.toFixed(2).replace('.',',')+' s ≥ 0,30 s — hanya penyulang terganggu yang padam.'; trip('R2'); }
+    else { v.className='verdict bad'; v.innerHTML='<div class="big" style="color:var(--bad)">❌ TIDAK SELEKTIF</div>R1 (hulu) trip terlalu cepat (margin '+(isFinite(margin)?margin.toFixed(2).replace('.',','):'-')+' s < 0,30 s) → seluruh bus ikut padam. Perbesar TMS R1 atau perkecil TMS R2.'; trip('R1'); }
+  } else {
+    $('oMar').textContent='—';
+    if(!isFinite(c.t1)){ v.className='verdict bad'; v.innerHTML='<div class="big" style="color:var(--bad)">❌ R1 TAK MENDETEKSI</div>Pickup R1 di atas arus gangguan bus. Turunkan pickup R1.'; trip(null); }
+    else { v.className='verdict ok'; v.innerHTML='<div class="big" style="color:var(--good)">✔ R1 MENGAMANKAN BUS</div>Gangguan di bus hanya dilihat R1 (hulu); R1 trip di '+fmt(c.t1)+'. R2 tidak terdampak (di sisi hilir).'; trip('R1'); }
+  }
+  draw(); coach();
+}
+function coach(){
+  var c=calc(); var m=$('coach');
+  if(S.r2p<=LOADMAX){ m.innerHTML='💡 <b>Pickup R2 ('+num(S.r2p)+' A) terlalu rendah</b> — bisa trip oleh arus beban normal ('+LOADMAX+' A). Naikkan di atas beban maks.'; return; }
+  if(S.r1p<=LOADMAX){ m.innerHTML='💡 <b>Pickup R1 terlalu rendah</b> terhadap beban. Naikkan di atas '+LOADMAX+' A.'; return; }
+  if(S.loc==='feeder'){
+    if(!isFinite(c.t2)){ m.innerHTML='💡 R2 tak akan trip: turunkan pickup R2 di bawah arus gangguan penyulang ('+num(c.If)+' A).'; return; }
+    var margin=c.t1-c.t2;
+    if(margin < MARGIN) m.innerHTML='💡 Margin grading '+ (isFinite(margin)?margin.toFixed(2).replace('.',','):'-') +' s masih < 0,30 s. <b>Naikkan TMS R1</b> agar hulu lebih lambat, atau <b>turunkan TMS R2</b>.';
+    else m.innerHTML='✅ Koordinasi sehat: hilir cepat, hulu jadi cadangan dengan margin cukup.';
+  } else { m.innerHTML='💡 Untuk gangguan bus, R1 (hulu) yang mengamankan. Pastikan R1 pickup di bawah arus gangguan bus & TMS wajar.'; }
+}
+
+/* ---- diagram + time-current curve ---- */
+function draw(){
+  var c=calc();
+  var W=600,H=360;
+  var s='';
+  // single line (left third)
+  s+='<text x="14" y="20" fill="#8aa2c4" font-size="11">SINGLE LINE 20 kV</text>';
+  s+='<line x1="60" y1="34" x2="60" y2="320" stroke="#36588a" stroke-width="2"/>';
+  s+='<text x="68" y="44" fill="#8aa2c4" font-size="10">SUMBER</text>';
+  // R1
+  s+=cb(60,90,'R1',(lastTrip==='R1'));
+  s+='<text x="84" y="94" fill="#ff9f5f" font-size="10">R1 hulu</text>';
+  // bus
+  s+='<line x1="30" y1="150" x2="120" y2="150" stroke="#f0a83a" stroke-width="4"/><text x="124" y="154" fill="#f0a83a" font-size="9">BUS 20kV</text>';
+  s+=(S.loc==='bus'?faultMark(75,150):'');
+  // R2
+  s+=cb(60,200,'R2',(lastTrip==='R2'));
+  s+='<text x="84" y="204" fill="#5fd0ff" font-size="10">R2 hilir</text>';
+  // feeder + fault/load
+  s+='<line x1="60" y1="214" x2="60" y2="320" stroke="#5fd0ff" stroke-width="2"/>';
+  s+='<text x="40" y="334" fill="#8aa2c4" font-size="9">PENYULANG</text>';
+  s+=(S.loc==='feeder'?faultMark(60,290):'');
+  // curve area (right)
+  var gx=190,gy=40,gw=380,gh=270;
+  s+='<rect x="'+gx+'" y="'+gy+'" width="'+gw+'" height="'+gh+'" fill="#06121f" stroke="#16294a"/>';
+  s+='<text x="'+(gx+6)+'" y="'+(gy+14)+'" fill="#8aa2c4" font-size="10">KURVA WAKTU–ARUS (IDMT)</text>';
+  s+='<text x="'+(gx+gw-4)+'" y="'+(gy+gh+14)+'" fill="#5d749a" font-size="9" text-anchor="end">arus →</text>';
+  s+='<text x="'+(gx-4)+'" y="'+(gy+12)+'" fill="#5d749a" font-size="9" text-anchor="end">t(s)</text>';
+  // axes scale: I 200..6000 (log-ish linear), t 0..2s
+  var Imin=200,Imax=6000,tmax=2.0;
+  function X(I){return gx+ (Math.log(I/Imin)/Math.log(Imax/Imin))*gw;}
+  function Y(t){return gy+ Math.min(1,t/tmax)*gh;}
+  // grid
+  [0.3,0.6,1.0,1.5,2.0].forEach(function(t){var y=Y(t);s+='<line x1="'+gx+'" y1="'+y+'" x2="'+(gx+gw)+'" y2="'+y+'" stroke="#10243f"/><text x="'+(gx+2)+'" y="'+(y-2)+'" fill="#3a526f" font-size="8">'+t.toString().replace('.',',')+'</text>';});
+  // relay curves
+  s+=curve(S.r2p,S.r2t,'#5fd0ff',X,Y,Imin,Imax,tmax);
+  s+=curve(S.r1p,S.r1t,'#ff9f5f',X,Y,Imin,Imax,tmax);
+  // fault current vertical line
+  if(S.If){var fx=X(S.If);s+='<line x1="'+fx+'" y1="'+gy+'" x2="'+fx+'" y2="'+(gy+gh)+'" stroke="#ff6b6b" stroke-dasharray="5 4" stroke-width="1.5"/><text x="'+(fx+3)+'" y="'+(gy+gh-4)+'" fill="#ff6b6b" font-size="9">If='+num(S.If)+'A</text>';
+    // trip dots
+    if(isFinite(c.t2)&&S.loc==='feeder'){s+='<circle cx="'+fx+'" cy="'+Y(c.t2)+'" r="4" fill="#5fd0ff"/>';}
+    if(isFinite(c.t1)){s+='<circle cx="'+fx+'" cy="'+Y(c.t1)+'" r="4" fill="#ff9f5f"/>';}
+  }
+  s+='<text x="'+(gx+gw-6)+'" y="'+(gy+26)+'" fill="#5fd0ff" font-size="9" text-anchor="end">— R2 hilir</text>';
+  s+='<text x="'+(gx+gw-6)+'" y="'+(gy+40)+'" fill="#ff9f5f" font-size="9" text-anchor="end">— R1 hulu</text>';
+  $('dia').innerHTML=s;
+  $('r1stat').textContent='Ip '+num(S.r1p)+'A · TMS '+S.r1t.toFixed(2).replace('.',',');
+  $('r2stat').textContent='Ip '+num(S.r2p)+'A · TMS '+S.r2t.toFixed(2).replace('.',',');
+}
+var lastTrip=null;
+function trip(who){lastTrip=who;draw();}
+function cb(x,y,id,tripped){var col=tripped?'#ff6b6b':'#57d98a';return '<rect x="'+(x-9)+'" y="'+(y-9)+'" width="18" height="18" rx="2" fill="'+(tripped?'#3a1414':'#0c1c38')+'" stroke="'+col+'" stroke-width="2"/>'+(tripped?'<text x="'+x+'" y="'+(y+4)+'" fill="#ff6b6b" font-size="11" text-anchor="middle">✕</text>':'');}
+function faultMark(x,y){return '<g><circle cx="'+x+'" cy="'+y+'" r="7" fill="none" stroke="#ff6b6b" stroke-width="2"/><path d="M'+(x-3)+','+(y-6)+' L'+(x+2)+','+y+' L'+(x-2)+','+y+' L'+(x+3)+','+(y+6)+'" stroke="#ffcf5f" stroke-width="1.5" fill="none"/><text x="'+(x+10)+'" y="'+(y+4)+'" fill="#ff6b6b" font-size="9">GANGGUAN</text></g>';}
+function curve(Ip,TMS,col,X,Y,Imin,Imax,tmax){var d='';var first=true;for(var I=Math.max(Ip*1.02,Imin);I<=Imax;I*=1.06){var t=idmt(I,Ip,TMS);if(t>tmax*1.4)continue;var x=X(I),y=Y(t);d+=(first?'M':'L')+x.toFixed(1)+','+y.toFixed(1);first=false;}
+  return d?'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2"/>':'';}
+
+/* ===== LEARNING LAYER ===== */
+(function(){
+var D={t:'SimProteksi — Koordinasi Relai OCR',s:'Proteksi jaringan 20 kV · IDMT & selektivitas',
+obj:['Memahami fungsi relai arus lebih (OCR) & kurva IDMT.','Menyetel pickup di atas beban maksimum & di bawah arus gangguan.','Mengatur TMS untuk selektivitas: relai hilir trip lebih dulu.','Menjaga margin grading (≈0,3 s) antara relai hilir & hulu.'],
+recap:['OCR memutus saat arus melebihi setelan (pickup); makin besar arus, makin cepat (inverse).','Pickup harus > beban maks (agar tak salah trip) dan < arus gangguan (agar mendeteksi).','TMS menggeser kurva waktu naik/turun tanpa mengubah bentuk.','Selektivitas: relai terdekat gangguan (hilir) trip dulu; hulu jadi cadangan.','Margin grading ≈0,3 s mencegah relai hulu ikut trip (padam meluas).'],
+qz:[
+{q:'Relai arus lebih (OCR) memutus rangkaian ketika…',opt:['Tegangan turun','Arus melebihi nilai setelan (pickup)','Frekuensi naik'],a:1,exp:'OCR bekerja atas dasar besar arus; melebihi pickup memulai proses trip.'},
+{q:'Arus pickup relai sebaiknya disetel…',opt:['Di bawah arus beban maksimum','Di atas beban maks tetapi di bawah arus gangguan','Sama dengan arus gangguan'],a:1,exp:'Agar tidak trip oleh beban normal namun tetap mendeteksi gangguan.'},
+{q:'Pada gangguan di penyulang, relai yang seharusnya trip lebih dulu adalah…',opt:['Relai hulu (incoming)','Relai hilir (penyulang)','Keduanya bersamaan'],a:1,exp:'Selektivitas: relai paling dekat gangguan (hilir) trip dulu agar padam terlokalisir.'},
+{q:'TMS (Time Multiplier Setting) berfungsi…',opt:['Mengubah arus pickup','Menggeser waktu kerja kurva naik/turun','Mengubah tegangan'],a:1,exp:'TMS menskalakan waktu operasi pada kurva IDMT tanpa mengubah bentuk kurva.'},
+{q:'Margin grading antar-relai (≈0,3 s) berguna untuk…',opt:['Mempercepat semua relai','Mencegah relai hulu ikut trip sehingga padam tak meluas','Menaikkan arus gangguan'],a:1,exp:'Selisih waktu memastikan hulu hanya bekerja bila hilir gagal (cadangan).'}
+]};
+var L=function(id){return document.getElementById(id);};var tab='obj',qi=0,score=0,answered=false;var ov=L('lrnOv'),body=L('lrnBody');
+L('lrnTitle').textContent=D.t;L('lrnSub').textContent=D.s;
+function render(){ if(tab==='obj'){body.innerHTML='<div style="font-size:12px;color:#8aa2c4;margin-bottom:8px">Setelah modul ini kamu mampu:</div>'+D.obj.map(function(o){return '<div class="lrn-li">'+o+'</div>';}).join('');}
+ else if(tab==='recap'){body.innerHTML='<div style="font-size:12px;color:#8aa2c4;margin-bottom:8px">Konsep kunci:</div>'+D.recap.map(function(o){return '<div class="lrn-li rc">'+o+'</div>';}).join('');}
+ else renderQuiz(); }
+function renderQuiz(){ if(qi>=D.qz.length){var pct=Math.round(score/D.qz.length*100);
+  body.innerHTML='<div class="lrn-score">Skor '+score+'/'+D.qz.length+' · '+pct+'%</div><div style="text-align:center;font-size:13px;color:#aab6c4;margin-bottom:10px">'+(pct>=80?'👏 Paham baik!':pct>=50?'Lumayan — ulangi yang salah.':'Pelajari lagi Tujuan & Rekap, lalu ulangi.')+'</div><button class="lrn-btn" id="lrnRetry">↻ ULANGI UJI</button>';
+  L('lrnRetry').onclick=function(){qi=0;score=0;renderQuiz();};try{var k='esim_quiz_'+D.t;localStorage.setItem(k,Math.max(+(localStorage.getItem(k)||0),pct));}catch(e){}return;}
+ var q=D.qz[qi];answered=false;
+ body.innerHTML='<div style="font-size:11px;color:#5d749a">Soal '+(qi+1)+'/'+D.qz.length+'</div><div class="lrn-q">'+q.q+'</div>'+q.opt.map(function(o,i){return '<button class="lrn-opt" data-i="'+i+'">'+o+'</button>';}).join('')+'<div class="lrn-exp" id="lrnExp">'+q.exp+'</div><div class="lrn-nav"><button class="lrn-btn" id="lrnNext" style="display:none">'+(qi===D.qz.length-1?'LIHAT SKOR →':'LANJUT →')+'</button></div>';
+ [].forEach.call(body.querySelectorAll('.lrn-opt'),function(b){b.onclick=function(){if(answered)return;answered=true;var i=+b.dataset.i;if(i===q.a){b.classList.add('ok');score++;}else{b.classList.add('no');var cc=body.querySelector('.lrn-opt[data-i="'+q.a+'"]');if(cc)cc.classList.add('ok');}L('lrnExp').classList.add('show');var n=L('lrnNext');n.style.display='block';n.onclick=function(){qi++;renderQuiz();};};});}
+[].forEach.call(document.querySelectorAll('.lrn-tab'),function(t){t.onclick=function(){[].forEach.call(document.querySelectorAll('.lrn-tab'),function(x){x.classList.remove('on');});t.classList.add('on');tab=t.dataset.t;if(tab==='quiz'){qi=0;score=0;}render();};});
+function open(){ov.classList.add('show');tab='obj';[].forEach.call(document.querySelectorAll('.lrn-tab'),function(x){x.classList.toggle('on',x.dataset.t==='obj');});render();}
+L('lrnFab').onclick=open;L('lrnClose').onclick=function(){ov.classList.remove('show');};ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('show');});
+try{if(!sessionStorage.getItem('lrn_'+D.t)){sessionStorage.setItem('lrn_'+D.t,'1');setTimeout(open,600);}}catch(e){}
+render();
+})();
+draw();coach();
+</script>
+</body>
+</html>
