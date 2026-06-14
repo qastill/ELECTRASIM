@@ -1,28 +1,27 @@
 # ELECTRASIM
 
 Simulator sistem tenaga listrik berbasis web (HTML statis, tanpa build step).
-Dibagi menjadi tiga tahap rantai pasok tenaga listrik:
 
-| Tahap | Modul | Berkas | Status |
-|-------|-------|--------|--------|
-| 1 | **Pembangkit** — Konsol operator PLTGU combined-cycle (SimPLTGU), jaga frekuensi 50 Hz, kelola bahan bakar/keandalan/emisi/laba. Tampilan 3D (Three.js) & diagram satu garis (SLD). | `pembangkit.html` | ✅ Siap |
-| 2 | **Transmisi** — Penjelajahan gardu induk 150/20 kV orang-pertama, misi keselamatan kerja (APD/K3). | `transmisi.html` | ✅ Siap |
-| 2 | **Transmisi** — SimDispatch: konsol Pusat Pengatur Beban (P2B) Jamali, economic dispatch & merit order, kendali frekuensi/cadangan (N-1). | `dispatch.html` | ✅ Siap |
-| 3 | **Distribusi** — Konstruksi SUTM 20 kV: game 3D orang-pertama — kenakan APD, panjat tiang, kuis tiap langkah, pasang travers/isolator/konduktor/proteksi/grounding hingga energize. | `distribusi.html` | ✅ Siap |
-| 3 | **Distribusi** — Yantek (Pelayanan Teknik): penanganan gangguan SUTM (kabel putus akibat binatang) + inspeksi gardu zoom-in & ganti NH Fuse, lalu penormalan tegangan. | `yantek.html` | ✅ Siap |
-| 3 | **Distribusi** — Sambungan Pelanggan & Wiring APP: pasang baru 1300 VA — tarik SR, pasang kWh meter, **klik meter untuk zoom-in & wiring terminal**, MCB pembatas, pentanahan, segel & energize. | `pelanggan.html` | ✅ Siap |
+**Homepage = ElectraSim VR 3D** (`index.html`) — satu app 3D berbasis misi untuk
+**16 jalur spesialisasi** ketenagalistrikan (128 misi), dipandu AI instructor VOLTA.
+Misi tiap jalur **berjenjang**: terkunci 🔒 sampai misi sebelumnya selesai (M1→M8),
+"Misi Berikutnya" melanjutkan sampai tuntas; progres tersimpan di `localStorage`.
 
-### Mode Eksplorasi — ElectraSim VR 3D (16 Jalur)
+## Simulator 3D ElectraSim (tertanam per jalur)
 
-`vr3d/` berisi app **ElectraSim VR 3D — 16 Jalur Ketenagalistrikan** (32 misi dalam satu mesin 3D):
-Instalasi Bangunan, Industri & Manufaktur, Distribusi, Transmisi, Energy Analyst, Energy Auditor,
-Pembangkitan & Renewable, K3 Listrik, Sales, PV/Solar, Sustainability, EV Charging, Waste to Energy,
-Hydrogen, BESS, dan Kontrol & Otomasi. Dimuat dari `vr3d/index.html` (di-link dari menu utama). Misi tiap jalur **berjenjang**:
-misi terkunci 🔒 sampai misi sebelumnya selesai (M1→M8), dan "Misi Berikutnya" melanjutkan
-sampai tuntas. Progres tersimpan di `localStorage`.
-Materi wiring kWh meter (standar terminal 1-3-4-6) pada modul Sambungan Pelanggan diselaraskan dengan app ini.
+Enam simulator interaktif tampil sebagai entri **3D** di dalam jalur yang sesuai pada menu VR 3D:
 
-`index.html` adalah halaman menu utama yang menautkan modul-modul di atas + app VR 3D.
+| Simulator | Berkas | Jalur |
+|-----------|--------|-------|
+| SimPLTGU — Konsol Operator PLTGU | `pembangkit.html` | 07 · Pembangkitan & Renewable |
+| Gardu Induk 150/20 kV — POV & Misi K3 | `transmisi.html` | 04 · Transmisi |
+| SimDispatch — Pengatur Beban (P2B) | `dispatch.html` | 04 · Transmisi |
+| Konstruksi SUTM 20 kV | `distribusi.html` | 03 · Distribusi |
+| Yantek — Penanganan Gangguan | `yantek.html` | 03 · Distribusi |
+| Sambungan Pelanggan & Wiring APP (kWh 1-3-4-6) | `pelanggan.html` | 03 · Distribusi |
+
+`gardu150.html` adalah jelajah bebas gardu 150/20 kV bawaan VR 3D (Jalur 04).
+Misi tiap jalur dimuat dari `missions/jalur01–16.js`; gambar di `foto/`.
 
 ## Menjalankan
 
