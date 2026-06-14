@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ElectraSim · Sambungan Pelanggan & Wiring APP (kWh Meter)</title>
+<style>
+  :root{--bg:#0b0e12;--panel:rgba(12,16,22,.86);--line:#2c3848;--amber:#ffb020;--cyan:#36d1dc;--green:#3ce07a;--red:#ff4d4d;--txt:#eaf0f6;--dim:#9aa7b6;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--txt);user-select:none}
+  #c{display:block;width:100vw;height:100vh}
+  .hud{position:fixed;pointer-events:none;z-index:5}
+  #tele{top:12px;left:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;min-width:212px;backdrop-filter:blur(8px)}
+  #tele .ttl{font-size:10px;letter-spacing:.16em;color:var(--dim);font-weight:700;margin-bottom:7px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:3px 0}
+  .row .k{font-size:11px;color:var(--dim)}.row .v{font-family:var(--mono);font-size:14px;font-weight:600}
+  #progWrap{margin-top:8px;height:8px;background:#161d27;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  #progBar{height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--green));transition:width .45s}
+  #stat{margin-top:8px;display:flex;align-items:center;gap:8px}#statDot{width:9px;height:9px;border-radius:50%;background:var(--dim)}#statTxt{font-family:var(--mono);font-size:12px;font-weight:700}
+  #miss{top:12px;right:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px;width:264px;max-height:46vh;overflow:auto;backdrop-filter:blur(8px)}
+  #miss::-webkit-scrollbar{width:5px}#miss::-webkit-scrollbar-thumb{background:#1d3458;border-radius:6px}
+  #miss .ttl{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:700;margin-bottom:8px}
+  .task{display:flex;gap:8px;align-items:flex-start;margin:7px 0;font-size:12px;line-height:1.3;color:var(--dim)}
+  .task .bx{flex:0 0 16px;height:16px;border:1.5px solid var(--line);border-radius:4px;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent}
+  .task.cur{color:var(--txt)}.task.cur .bx{border-color:var(--amber)}.task.done{color:var(--txt)}.task.done .bx{border-color:var(--green);color:var(--green)}
+  .task .nm{font-weight:600}.task.cur .nm{color:var(--amber)}
+  #stepcard{bottom:128px;left:50%;transform:translateX(-50%);width:min(560px,94vw);background:var(--panel);border:1px solid var(--amber);border-radius:14px;padding:12px 15px;backdrop-filter:blur(10px);display:none}
+  #stepcard .sc-h{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+  #stepcard .sc-no{font-family:var(--mono);font-size:11px;font-weight:800;color:#06140b;background:var(--amber);border-radius:7px;padding:3px 8px}
+  #stepcard .sc-nm{font-size:15px;font-weight:800}
+  #stepcard .sc-fn{font-size:12px;color:#c4d0dd;line-height:1.45;margin-bottom:8px}
+  #stepcard .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  #stepcard .sc-box{background:#10161f;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  #stepcard .sc-lbl{font-size:9px;letter-spacing:.1em;font-weight:700;margin-bottom:4px}#stepcard .sc-lbl.b{color:var(--cyan)}#stepcard .sc-lbl.a{color:var(--green)}
+  #stepcard .sc-li{font-size:11px;color:#cdd6e0;line-height:1.5}#stepcard .sc-tip{font-size:11px;color:var(--amber);margin-top:7px;line-height:1.4}
+  #toast{bottom:70px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 15px;font-size:12px;font-weight:600;opacity:0;transition:.25s;text-align:center;max-width:84vw;backdrop-filter:blur(8px)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.bad{border-color:var(--red);color:#ffd0d0}#toast.good{border-color:var(--green);color:#d3ffe4}
+  #sub{bottom:26px;left:50%;transform:translateX(-50%);max-width:min(720px,92vw);text-align:center;font-size:14px;line-height:1.4;color:#fff;text-shadow:0 2px 10px #000;font-weight:600;opacity:0;transition:.2s;pointer-events:none}
+  #sub.show{opacity:1}#sub .who{display:block;font-size:9px;letter-spacing:.18em;color:var(--cyan);font-weight:700;margin-bottom:3px}
+  #actWrap{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:none;flex-direction:column;align-items:center;gap:9px}
+  #doBtn{position:relative;overflow:hidden;background:linear-gradient(180deg,#ffc341,#ff9e16);border:none;color:#241400;font-weight:800;font-size:15px;padding:15px 30px;border-radius:14px;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.35);font-family:var(--sans);max-width:92vw;transition:.15s}
+  #doBtn:active{transform:scale(.97)}#doBtn.dis{background:#222a35;color:#73808f;box-shadow:none;cursor:default}
+  #doBtn .fill{position:absolute;inset:0;background:rgba(255,255,255,.35);width:0%;pointer-events:none}
+  .btnbar{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+  .btnbar button{background:var(--panel);border:1px solid var(--line);color:var(--txt);font-family:var(--mono);font-size:11px;padding:8px 11px;border-radius:10px;cursor:pointer;backdrop-filter:blur(8px)}
+  .btnbar button:hover{border-color:var(--amber);color:var(--amber)}
+  .touch{position:fixed;z-index:7;pointer-events:auto;display:none}
+  #joy{bottom:18px;left:18px;width:118px;height:118px;border-radius:50%;background:rgba(20,26,34,.4);border:1px solid var(--line)}
+  #joyKnob{position:absolute;top:50%;left:50%;width:46px;height:46px;border-radius:50%;background:rgba(255,176,32,.85);transform:translate(-50%,-50%)}
+  #quiz{position:fixed;inset:0;z-index:16;background:rgba(6,9,14,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+  #quizCard{background:#10161f;border:1px solid var(--amber);border-radius:16px;padding:20px 22px;max-width:460px;width:100%}
+  #quizCard .qtag{font-size:10px;letter-spacing:.14em;color:var(--amber);font-weight:800}
+  #quizCard h3{font-size:17px;margin:6px 0 4px;line-height:1.3}
+  #quizCard .qhint{font-size:12px;color:var(--dim);margin-bottom:14px}
+  .qopt{display:block;width:100%;text-align:left;background:#161d27;border:1px solid var(--line);color:var(--txt);font-size:14px;font-weight:600;padding:13px 15px;border-radius:11px;margin:8px 0;cursor:pointer;transition:.12s;font-family:var(--sans)}
+  .qopt:hover{border-color:var(--cyan)}.qopt.ok{border-color:var(--green);background:rgba(60,224,122,.12)}.qopt.no{border-color:var(--red);background:rgba(255,77,77,.1)}
+  /* meter wiring panel */
+  #meter{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:16;width:min(380px,94vw);background:var(--panel);border:1px solid var(--cyan);border-radius:16px;padding:14px 15px;backdrop-filter:blur(10px);display:none;max-height:92vh;overflow:auto}
+  #meter .gh{font-size:13px;font-weight:800;color:var(--cyan);margin-bottom:2px}
+  #meter .gs{font-size:11px;color:var(--dim);margin-bottom:10px}
+  #termSvg{width:100%;height:auto;background:#0c1118;border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+  .wrow{background:#10161f;border:1px solid var(--line);border-radius:11px;padding:9px 10px;margin:7px 0;transition:.12s}
+  .wrow.done{border-color:var(--green);opacity:.85}
+  .wlab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;margin-bottom:7px}
+  .wsw{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid #0008}
+  .wlab .wok{margin-left:auto;color:var(--green);font-family:var(--mono);font-size:11px;display:none}
+  .wrow.done .wok{display:inline}
+  .wopts{display:flex;gap:6px;flex-wrap:wrap}
+  .wopt{flex:1;min-width:64px;background:#161d27;border:1px solid var(--line);color:var(--txt);font-size:12px;font-weight:700;padding:9px 6px;border-radius:9px;cursor:pointer;font-family:var(--sans);transition:.12s}
+  .wopt:hover{border-color:var(--cyan)}.wopt.ok{border-color:var(--green);background:rgba(60,224,122,.14);cursor:default}.wopt.no{border-color:var(--red);background:rgba(255,77,77,.12)}.wopt:disabled{opacity:.5}
+  #wDetail{font-size:11px;color:#c4d0dd;line-height:1.5;background:#0c1118;border:1px dashed var(--line);border-radius:9px;padding:8px 10px;margin-top:8px;min-height:42px}
+  #wActs{display:flex;gap:8px;margin-top:10px}
+  #wActs button{flex:1;font-family:var(--sans);font-weight:800;font-size:13px;padding:11px;border-radius:11px;border:none;cursor:pointer}
+  #wClose{background:#1d3340;color:#9fb0c2;border:1px solid var(--line)!important}
+  #wDone{background:#1d3340;color:#73808f;border:1px solid var(--line)!important}#wDone.on{background:linear-gradient(180deg,#52e58e,#2fbf6a);color:#06210f;cursor:pointer}
+  .overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;overflow-y:auto}
+  #start{background:radial-gradient(120% 120% at 50% 22%,#1a2a1f 0%,#0a0d13 72%)}
+  #start .ey{font-size:11px;letter-spacing:.26em;color:var(--amber);font-weight:700}
+  #start h1{font-size:clamp(24px,5.5vw,42px);font-weight:800;margin:9px 0 4px}#start h1 span{color:var(--amber)}
+  #start p{color:#b9c2cd;max-width:510px;font-size:14px;line-height:1.55;margin-bottom:20px}
+  .go{font-family:var(--sans);font-size:14px;border:none;background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400;padding:14px 30px;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(255,160,30,.3)}
+  .go:active{transform:scale(.98)}#start .keys{margin-top:16px;font-size:11px;color:var(--dim);font-family:var(--mono);line-height:1.7}
+  .backlink{margin-top:18px;font-size:12px;color:var(--cyan);font-family:var(--mono);text-decoration:none;border:1px solid #244c55;border-radius:8px;padding:8px 16px}
+  .backlink:hover{background:rgba(54,209,220,.1)}
+  #apd{background:radial-gradient(120% 120% at 50% 30%,#15223a 0%,#0a0d13 72%);display:none}
+  #apd h2{font-size:clamp(19px,4.5vw,28px);font-weight:800;margin-bottom:3px}
+  #apd .ah{color:#aab6c4;font-size:13px;max-width:470px;margin-bottom:16px;line-height:1.45}
+  .equip{display:flex;gap:24px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0 14px}
+  .pool{display:flex;flex-direction:column;gap:8px;width:250px}
+  .apd-item{display:flex;align-items:center;gap:11px;background:#11161d;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;text-align:left}
+  .apd-item .ic{font-size:21px;width:25px;text-align:center}.apd-item small{display:block;color:var(--dim);font-weight:400;font-size:10.5px;margin-top:2px;line-height:1.25}
+  .apd-item:hover{border-color:var(--cyan)}.apd-item.done{opacity:.5;border-color:var(--green);pointer-events:none}.apd-item.done .chk{margin-left:auto;color:var(--green);font-family:var(--mono)}
+  .avatar{position:relative;width:170px;height:264px;border:1px dashed #34404c;border-radius:16px;background:radial-gradient(80% 70% at 50% 38%,rgba(54,209,220,.06),transparent);display:flex;align-items:center;justify-content:center}
+  .avatar .part{fill:#39424e;stroke:#10151b;stroke-width:1.5;transition:fill .25s,filter .25s}.avatar .part.on{fill:var(--green);filter:drop-shadow(0 0 5px rgba(60,224,122,.5))}
+  .avatar #pHelm.on{fill:var(--amber)}.avatar #pEyes.on{fill:#bfe9ff}.avatar #pBody.on{fill:#ff8c1a}
+  #apdGo{display:none;margin-top:2px}
+  #win{background:radial-gradient(120% 120% at 50% 30%,#10331f 0%,#0a0d13 75%);display:none}
+  #win h2{font-size:clamp(22px,5vw,34px);font-weight:800;color:var(--green);margin-bottom:6px}
+  #win p{color:#bcd;max-width:450px;font-size:14px;line-height:1.55;margin-bottom:8px}#win .stats{font-family:var(--mono);font-size:13px;margin:8px 0 16px;line-height:1.9}
+  #insight{position:fixed;inset:0;z-index:18;background:rgba(6,9,14,.95);display:none;flex-direction:column;padding:24px;overflow-y:auto}
+  #insight h2{font-size:19px;letter-spacing:.08em;color:var(--amber);margin-bottom:3px}#insight .isub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px;max-width:1040px}
+  .ins-d{background:#10161f;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .ins-d b{font-size:13px}.ins-d .tag{font-size:9px;letter-spacing:.1em;color:var(--cyan);border:1px solid #244c55;border-radius:20px;padding:1px 7px;margin-left:6px}
+  .ins-d p{font-size:11.5px;color:#b6c2d0;line-height:1.45;margin-top:6px}
+  .ins-d .ab{margin-top:6px;font-size:11px;line-height:1.5}.ins-d .ab .l{color:var(--green);font-weight:700}.ins-d .ab .l2{color:var(--cyan);font-weight:700}
+  #insight .clo{position:absolute;top:18px;right:22px;font-family:var(--mono);border:1px solid var(--line);color:var(--txt);background:#11161d;border-radius:8px;padding:8px 14px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="btnbar">
+  <button onclick="location.href='index.html'">‹ MENU</button>
+  <button id="bInsight">📚 ALAT & KOMPONEN</button>
+  <button id="bCam">🎥 KAMERA</button>
+  <button id="bMute">🔊</button>
+  <button id="bReset">⟳ ULANG</button>
+</div>
+
+<div class="hud" id="tele">
+  <div class="ttl">ELECTRASIM · SAMBUNGAN PELANGGAN</div>
+  <div class="row"><span class="k">Daya</span><span class="v" id="vDaya">1300 VA</span></div>
+  <div class="row"><span class="k">Progres</span><span class="v" id="vP">0 / 6</span></div>
+  <div id="progWrap"><div id="progBar"></div></div>
+  <div id="stat"><span id="statDot"></span><span id="statTxt">BELUM TERSAMBUNG</span></div>
+</div>
+
+<div class="hud" id="miss">
+  <div class="ttl">SPK · PASANG BARU (PB) & WIRING APP</div>
+  <div id="taskList"></div>
+</div>
+
+<div class="hud" id="stepcard">
+  <div class="sc-h"><span class="sc-no" id="scNo">1</span><span class="sc-nm" id="scNm">—</span></div>
+  <div class="sc-fn" id="scFn"></div>
+  <div class="sc-grid">
+    <div class="sc-box"><div class="sc-lbl b">🧰 ALAT</div><div class="sc-li" id="scAlat"></div></div>
+    <div class="sc-box"><div class="sc-lbl a">📦 BAHAN</div><div class="sc-li" id="scBahan"></div></div>
+  </div>
+  <div class="sc-tip" id="scTip"></div>
+</div>
+
+<div class="hud" id="toast"></div>
+<div class="hud" id="sub"><span class="who">PENGAWAS / INSTRUKTUR</span><span id="subTxt"></span></div>
+
+<div id="actWrap">
+  <button id="doBtn"><span class="fill" id="doFill"></span><span id="doTxt">▶ KERJAKAN</span></button>
+</div>
+
+<div class="touch" id="joy"><div id="joyKnob"></div></div>
+
+<div id="quiz"><div id="quizCard">
+  <div class="qtag" id="qTag">KUIS</div>
+  <h3 id="qQ">—</h3>
+  <div class="qhint">Jawab benar untuk melanjutkan pekerjaan.</div>
+  <div id="qOpts"></div>
+</div></div>
+
+<!-- meter wiring panel -->
+<div id="meter">
+  <div class="gh">🔌 WIRING kWh METER (APP) 1 FASA</div>
+  <div class="gs">Klik tombol terminal yang benar untuk tiap penghantar. Salah sambung berisiko meter terbakar / korsleting.</div>
+  <svg id="termSvg" viewBox="0 0 320 168">
+    <!-- meter body -->
+    <rect x="34" y="44" width="248" height="60" rx="8" fill="#16202b" stroke="#36588a"/>
+    <text x="158" y="38" fill="#8aa2c4" font-size="10" text-anchor="middle" font-family="monospace">BLOK TERMINAL kWh METER</text>
+    <!-- ground bar -->
+    <rect x="292" y="56" width="20" height="40" rx="3" fill="#10241a" stroke="#43d17a"/>
+    <text x="302" y="118" fill="#43d17a" font-size="9" text-anchor="middle" font-family="monospace">⏚</text>
+    <!-- terminals -->
+    <g font-family="monospace" font-size="10" text-anchor="middle">
+      <circle id="tT1" cx="70"  cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="70"  y="120" fill="#8aa2c4">1</text>
+      <circle id="tT2" cx="124" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="124" y="120" fill="#8aa2c4">2</text>
+      <circle id="tT3" cx="192" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="192" y="120" fill="#8aa2c4">3</text>
+      <circle id="tT4" cx="246" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="246" y="120" fill="#8aa2c4">4</text>
+    </g>
+    <text x="70"  y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">L in</text>
+    <text x="124" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">L out</text>
+    <text x="192" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N in</text>
+    <text x="246" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N out</text>
+    <g id="wirePaths"></g>
+  </svg>
+  <div id="wList"></div>
+  <div id="wDetail">Pilih terminal yang benar untuk tiap penghantar…</div>
+  <div id="wActs"><button id="wClose">TUTUP</button><button id="wDone">SELESAI WIRING</button></div>
+</div>
+
+<div class="overlay" id="start">
+  <div class="ey">PT PLN · SIMULATOR SAMBUNGAN PELANGGAN (PB/PD)</div>
+  <h1>ELECTRASIM <span>SAMBUNGAN PELANGGAN</span></h1>
+  <p><b>Pasang Baru 1 fasa 1300 VA.</b> Sebagai petugas, tarik <b>SR (Sambungan Rumah)</b> dari tiang ke rumah, pasang <b>APP (kWh meter)</b>, lalu <b>klik meter untuk zoom-in dan wiring</b> terminalnya dengan benar, pasang MCB pembatas & pentanahan, segel dan beri tegangan. Tiap langkah ada kuis & edukasi.</p>
+  <button class="go" id="startBtn">▶ MULAI PENUGASAN</button>
+  <div class="keys">Jalan: <b>WASD</b>/joystick · Kamera: <b>seret layar</b> · Kerja: tahan <b>E</b>/tombol · <b>Klik meter</b> untuk wiring</div>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<div class="overlay" id="apd">
+  <h2>BRIEFING K3 — KENAKAN APD</h2>
+  <div class="ah">Klik tiap <b>Alat Pelindung Diri</b>. Pemasangan sambungan pelanggan tetap <b>wajib</b> APD dasar.</div>
+  <div class="equip">
+    <div class="pool" id="apdPool"></div>
+    <div class="avatar">
+      <svg viewBox="0 0 120 200" width="148" height="244">
+        <ellipse class="part" id="pBoots" cx="60" cy="188" rx="30" ry="9"/>
+        <rect class="part" id="pBody" x="40" y="92" width="40" height="74" rx="10"/>
+        <rect class="part" id="pHarness" x="44" y="100" width="32" height="58" rx="7" fill="#2a3038"/>
+        <circle class="part" id="pHead" cx="60" cy="64" r="22"/>
+        <path class="part" id="pHelm" d="M36 60 a24 22 0 0 1 48 0 z"/>
+        <rect class="part" id="pEyes" x="48" y="58" width="24" height="7" rx="3" fill="#2a3038"/>
+        <rect class="part" id="pGlovesL" x="26" y="120" width="14" height="20" rx="6"/>
+        <rect class="part" id="pGlovesR" x="80" y="120" width="14" height="20" rx="6"/>
+      </svg>
+    </div>
+  </div>
+  <button class="go" id="apdGo">✔ APD LENGKAP — BERANGKAT</button>
+</div>
+
+<div class="overlay" id="win">
+  <h2>✔ PELANGGAN TERSAMBUNG</h2>
+  <p id="winMsg">Sambungan baru selesai: SR terpasang, APP ter-wiring benar, MCB & pentanahan OK, meter bertegangan — rumah menyala!</p>
+  <div class="stats" id="winStats"></div>
+  <button class="go" id="winBtn">⟳ ULANGI LATIHAN</button>
+  <a class="backlink" href="index.html">‹ Kembali ke Menu</a>
+</div>
+
+<div id="insight">
+  <button class="clo" id="insClose">TUTUP ✕</button>
+  <h2>BUKU SAKU · SAMBUNGAN PELANGGAN & APP</h2>
+  <div class="isub">Langkah pasang baru, alat/bahan, dan terminal kWh meter — referensi edukatif.</div>
+  <div class="ins-grid" id="insGrid"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0;
+const MP={x:-4.7,z:0.6};            // titik meter (di dinding rumah)
+
+const STEPS=[
+  {id:'survey', nm:'Survey & Persiapan Titik Sambung', tag:'SURVEY', workH:0, type:'quiz',
+   fn:'Periksa lokasi APP, jarak ke tiang, dan daya kontrak (1300 VA). Pastikan dinding kuat untuk dudukan meter & rapi.',
+   alat:['Meteran','HP/aplikasi PB','Waterpass'], bahan:['—'],
+   tip:'APP dipasang ±1,7 m dari tanah, mudah dibaca petugas baca meter.',
+   q:'Tinggi pemasangan kWh meter (APP) dari permukaan tanah yang ideal sekitar…',
+   opt:['±1,7 meter','±0,5 meter','±3,5 meter'], ans:0},
+  {id:'sr', nm:'Tarik Saluran Rumah (SR)', tag:'SR / SKTM', workH:0, type:'quizhold',
+   fn:'Tarik kabel pilin (twisted) LVTC dari tiang JTR ke rumah, kaitkan pada bracket dinding. Beri kelonggaran & klem rapi.',
+   alat:['Tangga','Tirfor kecil','Tang press','Pisau kabel'], bahan:['Kabel SR pilin (NFA2X 2×10)','Bracket / pole bracket','Klem & strain clamp'],
+   tip:'Andongan SR cukup agar tidak tegang; hindari menyentuh atap/pohon.',
+   q:'Kabel yang umum dipakai untuk Saluran Rumah (SR) udara adalah…',
+   opt:['Kabel pilin / twisted (NFA2X)','Kawat BC telanjang','Kabel NYA dalam pipa'], ans:0},
+  {id:'app', nm:'Pasang APP (kWh Meter) di Dinding', tag:'APP', workH:0, type:'quizhold',
+   fn:'Pasang dudukan & kotak APP, kencangkan ke dinding rata (waterpass), masukkan ujung SR ke dalam kotak melalui lubang masuk.',
+   alat:['Bor / obeng','Waterpass','Kunci pas'], bahan:['kWh meter 1 fasa','Box APP / dudukan','Sekrup fischer'],
+   tip:'Pastikan meter tegak & terpasang kokoh sebelum wiring.',
+   q:'APP (Alat Pengukur & Pembatas) terdiri dari…',
+   opt:['kWh meter + MCB pembatas','Trafo + arrester','FCO + isolator'], ans:0},
+  {id:'wiring', nm:'Wiring Terminal kWh Meter', tag:'WIRING', workH:0, type:'wire',
+   fn:'Klik meter untuk zoom-in. Sambungkan: FASA dari SR ke T1, FASA keluar ke MCB dari T2, NETRAL masuk ke T3, NETRAL keluar ke T4. Arde (PE) ke batang pentanahan — bukan terminal meter.',
+   alat:['Obeng terminal','Tang potong/kupas','Tespen'], bahan:['Kabel jumper','Skun / sepatu kabel'],
+   tip:'Urutan terminal 1-2-3-4: Fasa masuk – Fasa keluar – Netral masuk – Netral keluar.',
+   q:'', opt:[], ans:0},
+  {id:'mcb', nm:'Pasang MCB Pembatas & Pentanahan', tag:'PROTEKSI', workH:0, type:'quizhold',
+   fn:'Pasang MCB pembatas sesuai daya (1300 VA ≈ 6 A) pada keluaran fasa, lalu hubungkan penghantar arde (PE) ke batang pentanahan rumah.',
+   alat:['Obeng','Tang','Earth tester'], bahan:['MCB 1 fasa (6 A)','Kabel arde (hijau-kuning)','Batang pentanahan'],
+   tip:'MCB pembatas membatasi daya sesuai kontrak; pentanahan untuk keselamatan.',
+   q:'Untuk daya 1300 VA (1 fasa 230 V), MCB pembatas yang sesuai kira-kira…',
+   opt:['6 A','25 A','63 A'], ans:0},
+  {id:'energize', nm:'Segel, Beri Tegangan & Uji', tag:'KOMISIONING', workH:0, type:'quizhold',
+   fn:'Pasang segel APP, masukkan MCB, beri tegangan dari SR, periksa tespen & putaran/registrasi meter, pastikan instalasi pelanggan menyala normal. Lapor selesai.',
+   alat:['Tespen','Tang segel','HP/aplikasi'], bahan:['Segel APP','Kartu/struk PB'],
+   tip:'Segel mencegah pencurian listrik; uji nyala beberapa titik instalasi.',
+   q:'Fungsi segel pada APP adalah…',
+   opt:['Mencegah manipulasi / pencurian listrik','Menambah daya otomatis','Mendinginkan meter'], ans:0}
+];
+const APD=[
+  {id:'helm',ic:'⛑️',nm:'Helm Pengaman',fn:'Lindungi kepala dari benturan & benda jatuh.',part:'pHelm'},
+  {id:'kacamata',ic:'🥽',nm:'Kacamata Safety',fn:'Lindungi mata dari serpihan & percikan.',part:'pEyes'},
+  {id:'sarung',ic:'🧤',nm:'Sarung Tangan Isolasi',fn:'Lindungi tangan saat menangani penghantar.',part:'pGlovesL'},
+  {id:'sepatu',ic:'🥾',nm:'Sepatu Safety',fn:'Sepatu dielektrik, lindungi dari kejut & benda jatuh.',part:'pBoots'},
+  {id:'rompi',ic:'🦺',nm:'Rompi / Wearpack',fn:'Identitas petugas & pelindung tubuh.',part:'pBody'},
+];
+// wiring connections: tiap penghantar → terminal yang benar
+const WIRES=[
+  {id:'f1', lab:'FASA (L) dari SR', col:'#ff5a52', term:'T1', termX:70,
+   opts:['T1','T2','T3'], ans:'T1', edu:'Penghantar fasa dari SR masuk ke Terminal 1 (L in).'},
+  {id:'fo', lab:'FASA keluar ke MCB / instalasi', col:'#ff5a52', term:'T2', termX:124,
+   opts:['T1','T2','T4'], ans:'T2', edu:'Fasa keluar meter (Terminal 2 / L out) menuju MCB pembatas lalu instalasi.'},
+  {id:'n1', lab:'NETRAL (N) dari SR', col:'#4aa3ff', term:'T3', termX:192,
+   opts:['T2','T3','T4'], ans:'T3', edu:'Netral dari SR masuk ke Terminal 3 (N in).'},
+  {id:'no', lab:'NETRAL keluar ke instalasi', col:'#4aa3ff', term:'T4', termX:246,
+   opts:['T3','T4','G'], ans:'T4', edu:'Netral keluar meter (Terminal 4 / N out) ke instalasi pelanggan.'},
+  {id:'pe', lab:'ARDE / PE (hijau-kuning)', col:'#43d17a', term:'G', termX:302,
+   opts:['T1','T4','G'], ans:'G', edu:'Penghantar pembumian (PE) ke batang pentanahan (bar ⏚), bukan terminal pengukur.'},
+];
+const TERMX={T1:70,T2:124,T3:192,T4:246,G:302};
+
+let renderer,scene,camera,clock;
+const canvas=$('c');
+let char,charParts={},charShadow=null;
+let charPos={x:2,z:9}, charY=0, charYaw=Math.PI;
+let camYaw=Math.PI, camPitch=0.40, camDist=9;
+let curStep=0, started=false, muted=false;
+let work={state:'idle',prog:0}, eHeld=false, btnHeld=false, walkPhase=0, moving=false;
+const keys={};
+let fxList=[], targetBand=null;
+let srMesh=null, meterMesh=null, meterMat=null, ardeMesh=null, custWindow=null, wireMode=false;
+const ray=new THREE.Raycaster();
+
+function tex(draw,rep){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');draw(x);const t=new THREE.CanvasTexture(c);if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);}return t;}
+function grassTex(){return tex(x=>{x.fillStyle='#5d7e45';x.fillRect(0,0,128,128);for(let i=0;i<900;i++){x.fillStyle=`rgba(${40+Math.random()*40},${90+Math.random()*60},${40+Math.random()*40},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,3);}},44);}
+function asphaltTex(){return tex(x=>{x.fillStyle='#34373d';x.fillRect(0,0,128,128);for(let i=0;i<1400;i++){const g=30+Math.random()*40;x.fillStyle=`rgba(${g},${g},${g+4},.6)`;x.fillRect(Math.random()*128,Math.random()*128,1.4,1.4);}},1);}
+function wallTex(){return tex(x=>{x.fillStyle='#d8cdb8';x.fillRect(0,0,128,128);for(let i=0;i<300;i++){const g=200+Math.random()*40;x.fillStyle=`rgba(${g},${g-10},${g-30},.4)`;x.fillRect(Math.random()*128,Math.random()*128,3,3);}},1);}
+function concreteTex(){return tex(x=>{x.fillStyle='#c4cace';x.fillRect(0,0,128,128);for(let i=0;i<700;i++){const g=150+Math.random()*70;x.fillStyle=`rgba(${g},${g},${g},.5)`;x.fillRect(Math.random()*128,Math.random()*128,2,2);}},1);}
+function skyTex(){const c=document.createElement('canvas');c.width=16;c.height=256;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,'#3f78c0');g.addColorStop(.5,'#86b4e0');g.addColorStop(1,'#dCeaf6');x.fillStyle=g;x.fillRect(0,0,16,256);return new THREE.CanvasTexture(c);}
+function meterFaceTex(lit){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  x.fillStyle='#e9ebee';x.fillRect(0,0,128,128);x.fillStyle='#10202e';x.fillRect(8,8,112,30);
+  x.fillStyle=lit?'#8ff0c0':'#28424f';x.font='bold 20px monospace';x.fillText(lit?'00482':'-----',16,30);
+  x.fillStyle='#1b3550';x.font='bold 11px monospace';x.fillText('PLN  kWh',16,56);
+  x.fillStyle='#33414a';x.font='9px monospace';x.fillText('1 FASA 230V',16,70);
+  x.fillStyle=lit?'#ffd24a':'#5a6470';x.beginPath();x.arc(104,58,7,0,7);x.fill();
+  x.fillStyle='#222';x.fillRect(20,86,88,30);x.fillStyle='#3a3f47';x.fillRect(26,92,12,18);x.fillRect(44,92,12,18);x.fillRect(62,92,12,18);x.fillRect(80,92,12,18);
+  return new THREE.CanvasTexture(c);}
+
+function init(){
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  scene=new THREE.Scene();scene.fog=new THREE.Fog(0xbcd4ea,60,190);
+  camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,0.05,500);clock=new THREE.Clock();
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(280,24,16),new THREE.MeshBasicMaterial({map:skyTex(),side:THREE.BackSide,fog:false}));scene.add(sky);
+  scene.add(new THREE.HemisphereLight(0xcfe2ff,0x5a6648,0.78));
+  const sun=new THREE.DirectionalLight(0xfff1d8,1.2);sun.position.set(16,32,18);sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.near=1;sun.shadow.camera.far=90;sun.shadow.camera.left=-26;sun.shadow.camera.right=26;sun.shadow.camera.top=26;sun.shadow.camera.bottom=-26;sun.shadow.bias=-0.0004;scene.add(sun);
+  buildWorld();buildHouse();buildPoleSR();buildMeter();buildArde();buildChar();
+  resize();addEventListener('resize',resize);
+}
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+function mat(c,o={}){return new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.82,metalness:.05},o));}
+function box(w,h,d,c,o){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+function cyl(rt,rb,h,c,seg,o){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||14),mat(c,o));m.castShadow=true;m.receiveShadow=true;return m;}
+
+function buildWorld(){
+  const grass=new THREE.Mesh(new THREE.PlaneGeometry(380,380),new THREE.MeshStandardMaterial({map:grassTex(),roughness:1}));grass.rotation.x=-Math.PI/2;grass.receiveShadow=true;scene.add(grass);
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(8,380),new THREE.MeshStandardMaterial({map:asphaltTex(),roughness:1}));road.rotation.x=-Math.PI/2;road.position.set(6,0.02,0);road.receiveShadow=true;scene.add(road);
+  for(let z=-170;z<170;z+=10){const d=new THREE.Mesh(new THREE.PlaneGeometry(0.3,4),mat(0xe3d575,{roughness:1}));d.rotation.x=-Math.PI/2;d.position.set(6,0.03,z);scene.add(d);}
+  for(let i=0;i<8;i++){const z=-90+i*22,hx=-16-Math.random()*4,hh=3+Math.random()*1.3;
+    const house=box(5,hh,5,0xc8b79c);house.position.set(hx,hh/2,z);scene.add(house);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(4.2,2,4),mat(0x9a4a3a));roof.position.set(hx,hh+1,z);roof.rotation.y=Math.PI/4;roof.castShadow=true;scene.add(roof);}
+  for(let i=0;i<26;i++){const x=12+Math.random()*44,z=-150+Math.random()*300;const cr=new THREE.Mesh(new THREE.SphereGeometry(1.4+Math.random(),8,7),mat(0x3f6a36));cr.position.set(x,2,z);cr.castShadow=true;scene.add(cr);const tr=cyl(0.16,0.22,1.8,0x5a4030,7);tr.position.set(x,0.9,z);scene.add(tr);}
+}
+// customer house: center x=-7.2, front face toward +x at x=-4.7
+function buildHouse(){
+  const HX=-7.2,HZ=0;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(5,3.4,5.2),new THREE.MeshStandardMaterial({map:wallTex(),roughness:.95}));body.position.set(HX,1.7,HZ);body.castShadow=true;body.receiveShadow=true;scene.add(body);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(4.3,1.9,4),mat(0x9a4a3a));roof.position.set(HX,4.4,HZ);roof.rotation.y=Math.PI/4;roof.castShadow=true;scene.add(roof);
+  // door
+  const door=box(1.0,2.0,0.1,0x6a4a2c);door.position.set(-4.66,1.0,-1.2);scene.add(door);
+  // window (lights up on energize)
+  custWindow=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.1,0.1),new THREE.MeshStandardMaterial({color:0x33414a,emissive:0x000000}));custWindow.position.set(-4.66,1.7,1.4);scene.add(custWindow);
+}
+function buildPoleSR(){
+  const SP={x:-1.6,z:-2.4};
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.2,8.2,14),new THREE.MeshStandardMaterial({map:concreteTex(),color:0xccd1d5,roughness:.92}));pole.position.set(SP.x,4.1,SP.z);pole.castShadow=true;scene.add(pole);
+  // JTR small arm + insulators
+  const arm=box(0.08,0.08,1.4,0x788088,{metalness:.4});arm.position.set(SP.x,7.4,SP.z);scene.add(arm);
+  // SR twisted cable from pole to wall hook (hidden until SR step)
+  srMesh=new THREE.Group();
+  const a=new THREE.Vector3(SP.x,7.2,SP.z), b=new THREE.Vector3(-4.75,3.0,MP.z);
+  const mid=new THREE.Vector3((a.x+b.x)/2,Math.min(a.y,b.y)-0.6,(a.z+b.z)/2);
+  const curve=new THREE.QuadraticBezierCurve3(a,mid,b);
+  const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,18,0.035,6,false),mat(0x23262b,{metalness:.4,roughness:.5}));tube.castShadow=true;srMesh.add(tube);
+  const hook=box(0.1,0.1,0.1,0x555);hook.position.set(-4.7,3.0,MP.z);srMesh.add(hook);
+  srMesh.visible=false;scene.add(srMesh);
+}
+function buildMeter(){
+  meterMesh=new THREE.Group();
+  const boxBack=box(0.4,0.56,0.16,0xeceef0,{roughness:.6});boxBack.position.set(-4.78,1.55,MP.z);meterMesh.add(boxBack);
+  meterMat=new THREE.MeshStandardMaterial({map:meterFaceTex(false),roughness:.5,emissive:0x000000});
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(0.34,0.5),meterMat);face.position.set(-4.575,1.55,MP.z);face.rotation.y=Math.PI/2;meterMesh.add(face);
+  // little MCB box below
+  const mcb=box(0.22,0.18,0.12,0x2b2f36);mcb.position.set(-4.8,1.18,MP.z);meterMesh.add(mcb);
+  meterMesh.visible=false;scene.add(meterMesh);
+  // target marker
+  targetBand=new THREE.Mesh(new THREE.TorusGeometry(0.42,0.04,8,28),new THREE.MeshBasicMaterial({color:0x36d1dc,transparent:true,opacity:.8}));targetBand.rotation.x=Math.PI/2;targetBand.visible=false;scene.add(targetBand);
+}
+function buildArde(){
+  ardeMesh=new THREE.Group();
+  const w=cyl(0.012,0.012,1.6,0x43d17a,6);w.position.set(-4.85,0.95,MP.z+0.25);ardeMesh.add(w);
+  const rod=cyl(0.02,0.02,0.7,0xc0992f,6);rod.position.set(-4.85,0.0,MP.z+0.25);ardeMesh.add(rod);
+  ardeMesh.visible=false;scene.add(ardeMesh);
+}
+function buildChar(){
+  char=new THREE.Group();
+  const skin=0xe0a878, vest=0xff8c1a, dark=0x2b2f36, helm=0xffc022, glove=0xf0c040, belt=0x3a2c1a;
+  charParts.legL=box(0.26,0.72,0.26,dark);charParts.legL.position.set(-0.16,0.36,0);char.add(charParts.legL);
+  charParts.legR=box(0.26,0.72,0.26,dark);charParts.legR.position.set(0.16,0.36,0);char.add(charParts.legR);
+  const bL=box(0.28,0.16,0.34,0x16181c);bL.position.set(-0.16,0.08,0.04);char.add(bL);const bR=box(0.28,0.16,0.34,0x16181c);bR.position.set(0.16,0.08,0.04);char.add(bR);
+  const torso=box(0.66,0.74,0.36,vest);torso.position.set(0,1.08,0);char.add(torso);
+  const stripe=box(0.68,0.13,0.38,0xf2f2f2);stripe.position.set(0,1.02,0);char.add(stripe);
+  const beltM=box(0.7,0.12,0.4,belt);beltM.position.set(0,0.74,0);char.add(beltM);
+  charParts.armL=new THREE.Group();let aL=box(0.2,0.64,0.2,skin);aL.position.y=-0.32;charParts.armL.add(aL);let gL=box(0.22,0.17,0.24,glove);gL.position.y=-0.68;charParts.armL.add(gL);charParts.armL.position.set(-0.43,1.40,0);char.add(charParts.armL);
+  charParts.armR=new THREE.Group();let aR=box(0.2,0.64,0.2,skin);aR.position.y=-0.32;charParts.armR.add(aR);let gR=box(0.22,0.17,0.24,glove);gR.position.y=-0.68;charParts.armR.add(gR);charParts.armR.position.set(0.43,1.40,0);char.add(charParts.armR);
+  const head=box(0.4,0.42,0.4,skin);head.position.set(0,1.68,0);char.add(head);
+  const face=box(0.18,0.07,0.03,0x2a2d31);face.position.set(0,1.68,0.205);char.add(face);
+  const hat=new THREE.Mesh(new THREE.SphereGeometry(0.27,14,10,0,Math.PI*2,0,Math.PI/2),mat(helm));hat.position.set(0,1.9,0);hat.castShadow=true;char.add(hat);
+  const brim=cyl(0.3,0.3,0.04,helm,16);brim.position.set(0,1.9,0.06);char.add(brim);
+  char.position.set(charPos.x,0,charPos.z);scene.add(char);
+  charShadow=new THREE.Mesh(new THREE.CircleGeometry(0.45,18),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32}));charShadow.rotation.x=-Math.PI/2;charShadow.position.y=0.02;scene.add(charShadow);
+}
+
+/* controls */
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE'){eHeld=true;onInteract();}});
+addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyE')eHeld=false;});
+let drag=false,lx=0,ly=0,downX=0,downY=0,dragMoved=false;
+canvas.addEventListener('mousedown',e=>{drag=true;lx=e.clientX;ly=e.clientY;downX=e.clientX;downY=e.clientY;dragMoved=false;});
+addEventListener('mouseup',()=>drag=false);
+addEventListener('mousemove',e=>{if(drag){if(Math.hypot(e.clientX-downX,e.clientY-downY)>7)dragMoved=true;camYaw-=(e.clientX-lx)*0.005;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(e.clientY-ly)*0.004));lx=e.clientX;ly=e.clientY;}});
+canvas.addEventListener('click',e=>{if(!dragMoved)tryClickMeter(e.clientX,e.clientY);});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camDist=Math.max(4,Math.min(16,camDist+e.deltaY*0.01));},{passive:false});
+let joyVec={x:0,y:0},joyId=-1,lookId=-1,lastLook={x:0,y:0},lookMoved=false;
+const joy=$('joy'),knob=$('joyKnob');
+function setKnob(dx,dy){knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}
+if(isTouch){
+  joy.addEventListener('touchstart',e=>{joyId=e.changedTouches[0].identifier;e.preventDefault();},{passive:false});
+  addEventListener('touchstart',e=>{for(const t of e.changedTouches){const r=joy.getBoundingClientRect();const inJ=t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom;if(!inJ&&lookId<0&&t.clientX>innerWidth*0.42&&t.clientY<innerHeight*0.72){lookId=t.identifier;lastLook={x:t.clientX,y:t.clientY};lookMoved=false;}}},{passive:false});
+  addEventListener('touchmove',e=>{for(const t of e.changedTouches){if(t.identifier===joyId){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=t.clientX-cx,dy=t.clientY-cy;const mg=Math.hypot(dx,dy),mx=46;if(mg>mx){dx*=mx/mg;dy*=mx/mg;}setKnob(dx,dy);joyVec={x:dx/mx,y:dy/mx};}else if(t.identifier===lookId){if(Math.hypot(t.clientX-lastLook.x,t.clientY-lastLook.y)>4)lookMoved=true;camYaw-=(t.clientX-lastLook.x)*0.006;camPitch=Math.max(0.06,Math.min(1.25,camPitch-(t.clientY-lastLook.y)*0.005));lastLook={x:t.clientX,y:t.clientY};}}e.preventDefault();},{passive:false});
+  addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===joyId){joyId=-1;joyVec={x:0,y:0};setKnob(0,0);}if(t.identifier===lookId){if(!lookMoved)tryClickMeter(t.clientX,t.clientY);lookId=-1;}}});
+}
+function tryClickMeter(cx,cy){
+  if(!started||wireMode)return;const s=curS();if(!s||s.type!=='wire')return;
+  if(!meterMesh||!meterMesh.visible)return;
+  const r=canvas.getBoundingClientRect();
+  const ndc=new THREE.Vector2(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1);
+  ray.setFromCamera(ndc,camera);
+  if(ray.intersectObject(meterMesh,true).length){ if(nearMeter())enterWiring(); else toast('Dekati meter dulu untuk wiring.','bad'); }
+}
+
+function dist(a,b){return Math.hypot(charPos.x-a,charPos.z-b);}
+function nearMeter(){return dist(MP.x,MP.z)<2.9;}
+function curS(){return curStep<STEPS.length?STEPS[curStep]:null;}
+function inPosition(){return nearMeter();}
+function onInteract(){if(!started)return;if(work.state==='ready')return;doKerjakan();}
+function doKerjakan(){const s=curS();if(!s||work.state!=='idle'||wireMode)return;
+  if(!inPosition()){toast('Dekati rumah/meter dulu (penanda biru).','bad');return;}
+  if(s.type==='wire'){enterWiring();return;}
+  openQuiz(s);
+}
+
+let quizStep=null;
+function openQuiz(s){quizStep=s;$('qTag').textContent='KUIS · '+s.tag;$('qQ').textContent=s.q;const w=$('qOpts');w.innerHTML='';s.opt.forEach((o,i)=>{const b=document.createElement('button');b.className='qopt';b.textContent=o;b.addEventListener('click',()=>answer(i,b));w.appendChild(b);});$('quiz').style.display='flex';}
+function answer(i,btn){
+  if(i===quizStep.ans){btn.classList.add('ok');sayInstr('Tepat! '+quizStep.fn);setTimeout(()=>{$('quiz').style.display='none';
+    if(quizStep.type==='quiz'){finishStep(quizStep);} else {work.state='ready';work.prog=0;toast('Benar! Tahan tombol KERJA untuk mengerjakan.','good');}
+  },550);}
+  else{btn.classList.add('no');toast('Kurang tepat — pelajari lagi.','bad');sayInstr('Belum tepat. '+quizStep.fn);setTimeout(()=>btn.classList.remove('no'),700);}
+}
+
+/* wiring panel */
+function enterWiring(){wireMode=true;$('meter').style.display='block';$('actWrap').style.display='none';$('wirePaths').innerHTML='';$('wDetail').textContent='Pilih terminal yang benar untuk tiap penghantar…';$('wDone').classList.remove('on');WIRES.forEach(w=>w._done=false);buildWList();setStat('WIRING','var(--cyan)');sayInstr('Zoom ke meter. Sambungkan tiap penghantar ke terminal yang benar sesuai urutan 1-2-3-4.');}
+function buildWList(){const wrap=$('wList');wrap.innerHTML='';WIRES.forEach(w=>{
+  const el=document.createElement('div');el.className='wrow'+(w._done?' done':'');el.id='wr_'+w.id;
+  let opts=w.opts.map(o=>`<button class="wopt" data-w="${w.id}" data-o="${o}">${o}</button>`).join('');
+  el.innerHTML=`<div class="wlab"><span class="wsw" style="background:${w.col}"></span>${w.lab}<span class="wok">✓ OK</span></div><div class="wopts">${opts}</div>`;
+  wrap.appendChild(el);});
+  wrap.querySelectorAll('.wopt').forEach(b=>b.addEventListener('click',()=>chooseTerm(b.dataset.w,b.dataset.o,b)));
+}
+function chooseTerm(wid,opt,btn){
+  const w=WIRES.find(x=>x.id===wid);if(!w||w._done)return;
+  $('wDetail').innerHTML='<b>'+w.lab+'</b> → '+opt+'. '+w.edu;
+  if(opt===w.ans){
+    w._done=true;btn.classList.add('ok');
+    $('wr_'+wid).classList.add('done');$('wr_'+wid).querySelectorAll('.wopt').forEach(x=>x.disabled=true);
+    drawWire(w);highlightTerm(w.term,w.col);
+    toast('✔ '+w.lab+' → '+opt,'good');
+    if(WIRES.every(x=>x._done)){$('wDone').classList.add('on');sayInstr('Semua terminal tersambung benar. Tutup penutup terminal & lanjutkan.');}
+  } else {
+    btn.classList.add('no');toast('Salah terminal — cek lagi urutannya.','bad');sayInstr('Bukan di situ. '+w.edu);setTimeout(()=>btn.classList.remove('no'),600);
+  }
+}
+function drawWire(w){const x=w.termX;const p=`<line x1="${x}" y1="14" x2="${x}" y2="83" stroke="${w.col}" stroke-width="4" stroke-linecap="round"/><circle cx="${x}" cy="14" r="4" fill="${w.col}"/>`;$('wirePaths').insertAdjacentHTML('beforeend',p);}
+function highlightTerm(t,col){const el=$('t'+t);if(el){el.setAttribute('stroke',col);el.setAttribute('fill',col);}}
+$('wClose').addEventListener('click',()=>{wireMode=false;$('meter').style.display='none';$('actWrap').style.display='flex';setStat('DI LOKASI','var(--amber)');});
+$('wDone').addEventListener('click',()=>{if(!WIRES.every(x=>x._done)){toast('Lengkapi semua sambungan dulu.','bad');return;}wireMode=false;$('meter').style.display='none';$('actWrap').style.display='flex';finishStep(curS());});
+
+/* hold-to-work */
+$('doBtn').addEventListener('pointerdown',()=>{btnHeld=true;if(work.state==='idle')doKerjakan();});
+$('doBtn').addEventListener('pointerup',()=>btnHeld=false);
+$('doBtn').addEventListener('pointerleave',()=>btnHeld=false);
+
+function finishStep(s){
+  showStepCard(s);
+  if(s.id==='sr'&&srMesh)srMesh.visible=true;
+  if(s.id==='app'&&meterMesh){meterMesh.visible=true;sayInstr('APP terpasang. KLIK METER untuk zoom-in & wiring terminalnya.');}
+  if(s.id==='mcb'&&ardeMesh)ardeMesh.visible=true;
+  if(s.id==='energize'){energize();} else toast('✔ '+s.nm,'good');
+  pulseFx([MP.x+0.3,1.55,MP.z]);
+  sayInstr(s.fn);
+  curStep++;work.state='idle';work.prog=0;updateTasks();updateHUD();
+  const ns=curS();
+  if(ns)setTimeout(()=>{ sayInstr('Berikutnya: '+ns.nm+'. '+(ns.type==='wire'?'Klik meter untuk wiring.':'Dekati meter & tahan tombol KERJA.')); },1300);
+}
+function energize(){
+  if(meterMat){meterMat.map=meterFaceTex(true);meterMat.map.needsUpdate=true;meterMat.emissive=new THREE.Color(0x183a2a);}
+  if(custWindow){custWindow.material.emissive=new THREE.Color(0xffd070);custWindow.material.color=new THREE.Color(0xffe9a8);custWindow.material.emissiveIntensity=0;}
+  fxList.push({kind:'energize',t:0});
+  setStat('TERSAMBUNG','var(--green)');$('vDaya').textContent='1300 VA · ON';toast('⚡ TEGANGAN MASUK — pelanggan menyala!','good');
+  setTimeout(showWin,2500);
+}
+
+function restPose(){if(!charParts.armL)return;charParts.armL.rotation.x=0;charParts.armR.rotation.x=0;charParts.legL.rotation.x=0;charParts.legR.rotation.x=0;}
+function workPose(t){if(!charParts.armR)return;charParts.armR.rotation.x=-1.5+Math.sin(t*14)*0.35;charParts.armL.rotation.x=-1.2;}
+
+function pulseFx(p){const ring=new THREE.Mesh(new THREE.RingGeometry(0.1,0.18,24),new THREE.MeshBasicMaterial({color:0x3ce07a,transparent:true,side:THREE.DoubleSide}));ring.position.set(p[0],p[1],p[2]);scene.add(ring);fxList.push({m:ring,t:0,kind:'ring'});}
+function updateFx(dt){for(let i=fxList.length-1;i>=0;i--){const f=fxList[i];f.t+=dt;
+  if(f.kind==='ring'){f.m.scale.setScalar(1+f.t*5);f.m.material.opacity=Math.max(0,.8-f.t*1.4);f.m.lookAt(camera.position);if(f.t>.7){scene.remove(f.m);fxList.splice(i,1);}}
+  else if(f.kind==='energize'){const k=Math.min(1,f.t/1.5);if(custWindow)custWindow.material.emissiveIntensity=k;if(meterMat)meterMat.emissiveIntensity=0.4*k;if(f.t>1.6)fxList.splice(i,1);}
+}}
+
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,clock.getDelta());
+  if(started&&!wireMode){moveUpdate(dt);workUpdate(dt);}
+  if(char){char.position.set(charPos.x,charY,charPos.z);char.rotation.y=charYaw;
+    if(charShadow){charShadow.position.set(charPos.x,0.02,charPos.z);}
+    if(moving&&work.state!=='holding'){walkPhase+=dt*10;charParts.legL.rotation.x=Math.sin(walkPhase)*0.6;charParts.legR.rotation.x=-Math.sin(walkPhase)*0.6;charParts.armL.rotation.x=-Math.sin(walkPhase)*0.4;charParts.armR.rotation.x=Math.sin(walkPhase)*0.4;}
+    else if(work.state==='idle'&&!wireMode)restPose();
+  }
+  const s=curS();
+  if(started&&s&&!wireMode){targetBand.visible=true;const okp=inPosition();targetBand.material.color.setHex(okp?0x3ce07a:0x36d1dc);targetBand.material.opacity=0.45+0.3*Math.sin(performance.now()/250);targetBand.position.set(MP.x,0.1,MP.z);}
+  else if(targetBand)targetBand.visible=false;
+  if(wireMode){
+    const ct=new THREE.Vector3(-4.6,1.55,MP.z);
+    const cp=new THREE.Vector3(-2.1,1.7,MP.z+0.02);
+    camera.position.lerp(cp,0.1);camera.lookAt(ct);
+  } else {
+    const tgt=new THREE.Vector3(charPos.x,charY+1.4,charPos.z);
+    const off=new THREE.Vector3(Math.sin(camYaw)*Math.cos(camPitch),Math.sin(camPitch),Math.cos(camYaw)*Math.cos(camPitch)).multiplyScalar(camDist);
+    camera.position.copy(tgt).add(off);camera.lookAt(tgt);
+  }
+  if(started){updateHUD();updateActBtn();}
+  updateFx(dt);renderer.render(scene,camera);
+}
+function moveUpdate(dt){
+  let f=0,s=0;
+  if(keys['KeyW']||keys['ArrowUp'])f+=1;if(keys['KeyS']||keys['ArrowDown'])f-=1;if(keys['KeyA']||keys['ArrowLeft'])s-=1;if(keys['KeyD']||keys['ArrowRight'])s+=1;
+  if(isTouch&&(Math.abs(joyVec.x)>0.05||Math.abs(joyVec.y)>0.05)){f+=-joyVec.y;s+=joyVec.x;}
+  moving=!!(f||s);if(!moving)return;
+  const fwdX=-Math.sin(camYaw),fwdZ=-Math.cos(camYaw),rgtX=-Math.cos(camYaw),rgtZ=Math.sin(camYaw);
+  let mx=fwdX*f+rgtX*s,mz=fwdZ*f+rgtZ*s;const ml=Math.hypot(mx,mz)||1;mx/=ml;mz/=ml;
+  const spd=4.6*dt;charPos.x+=mx*spd;charPos.z+=mz*spd;charYaw=Math.atan2(mx,mz);
+  // keep out of house body (front face x=-4.6)
+  if(charPos.x<-4.0&&Math.abs(charPos.z)<2.7)charPos.x=-4.0;
+  charPos.x=Math.max(-4.0,Math.min(11,charPos.x));charPos.z=Math.max(-12,Math.min(12,charPos.z));
+}
+function workUpdate(dt){
+  if(work.state==='ready'||work.state==='holding'){
+    const holding=(eHeld||btnHeld)&&inPosition();
+    if(holding){work.state='holding';work.prog=Math.min(1,work.prog+dt/1.5);workPose(performance.now()/1000);if(work.prog>=1)finishStep(curS());}
+    else if(work.state==='holding')work.state='ready';
+  }
+}
+
+function idn(n,d=0){return n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function updateHUD(){$('vP').textContent=curStep+' / '+STEPS.length;$('progBar').style.width=(curStep/STEPS.length*100)+'%';}
+function updateActBtn(){
+  const b=$('doBtn'),tx=$('doTxt'),fill=$('doFill');const s=curS();
+  if(!s){b.classList.add('dis');tx.textContent='✔ SELESAI';fill.style.width='0%';return;}
+  if(work.state==='ready'||work.state==='holding'){b.classList.remove('dis');tx.textContent=work.state==='holding'?('⚙️ BEKERJA… '+Math.round(work.prog*100)+'%'):'⬇️ TAHAN UNTUK BEKERJA';fill.style.width=(work.prog*100)+'%';return;}
+  fill.style.width='0%';
+  if(inPosition()){b.classList.remove('dis');tx.textContent=s.type==='wire'?'🔌 WIRING METER (klik meter)':(s.type==='quiz'?'▶ PERIKSA: '+s.nm.split(' ').slice(0,2).join(' '):'▶ KERJAKAN: '+s.nm.split(' ').slice(0,2).join(' '));}
+  else{b.classList.add('dis');tx.textContent='Dekati rumah/meter (penanda biru)';}
+}
+function updateTasks(){const w=$('taskList');w.innerHTML='';STEPS.forEach((s,i)=>{const cls=i<curStep?'done':i===curStep?'cur':'';const el=document.createElement('div');el.className='task '+cls;el.innerHTML=`<span class="bx">${i<curStep?'✓':''}</span><span class="nm">${i+1}. ${s.nm}</span>`;w.appendChild(el);});}
+function setStat(t,col){$('statTxt').textContent=t;$('statDot').style.background=col||'var(--amber)';}
+let cardT;function showStepCard(s){$('scNo').textContent=STEPS.indexOf(s)+1;$('scNm').textContent=s.nm;$('scFn').textContent=s.fn;$('scAlat').innerHTML=s.alat.map(a=>'• '+a).join('<br>');$('scBahan').innerHTML=s.bahan.map(b=>'• '+b).join('<br>');$('scTip').textContent='💡 '+s.tip;$('stepcard').style.display='block';clearTimeout(cardT);cardT=setTimeout(()=>$('stepcard').style.display='none',8500);}
+function showCurrentCard(){const s=curS();if(s)showStepCard(s);}
+let toastT;function toast(t,k){const el=$('toast');el.textContent=t;el.className='show '+(k||'');clearTimeout(toastT);toastT=setTimeout(()=>el.className=el.className.replace('show',''),2600);}
+let subT;function sayInstr(t){const el=$('sub');$('subTxt').textContent=t;el.classList.add('show');clearTimeout(subT);subT=setTimeout(()=>el.classList.remove('show'),Math.max(3000,t.length*42));if(!muted&&'speechSynthesis'in window){try{const u=new SpeechSynthesisUtterance(t);u.lang='id-ID';u.rate=1.03;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}}
+
+$('startBtn').addEventListener('click',()=>{$('start').style.display='none';$('apd').style.display='flex';buildAPD();});
+function buildAPD(){const pool=$('apdPool');pool.innerHTML='';APD.equipped=0;APD.forEach(a=>{const el=document.createElement('div');el.className='apd-item';el.id='apd_'+a.id;el.innerHTML=`<span class="ic">${a.ic}</span><span>${a.nm}<small>${a.fn}</small></span>`;el.addEventListener('click',()=>equipAPD(a,el));pool.appendChild(el);});}
+function equipAPD(a,el){el.classList.add('done');el.innerHTML+='<span class="chk">✓</span>';const p=$(a.part);if(p)p.classList.add('on');if(a.id==='sarung')$('pGlovesR').classList.add('on');APD.equipped=(APD.equipped||0)+1;if(APD.equipped>=APD.length)$('apdGo').style.display='inline-block';}
+$('apdGo').addEventListener('click',()=>{$('apd').style.display='none';beginGame();});
+function beginGame(){started=true;updateTasks();updateHUD();setStat('BELUM TERSAMBUNG','var(--red)');$('actWrap').style.display='flex';if(isTouch)$('joy').style.display='block';showCurrentCard();
+  sayInstr('Penugasan pasang baru 1300 VA. Jalan ke rumah pelanggan (penanda biru), lalu mulai dari survey titik sambung.');
+  toast('Menuju rumah pelanggan (penanda biru).','good');}
+function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Wiring APP: <b>T1-T2-T3-T4 benar</b> · Arde OK<br>K3: <b style="color:var(--green)">APD lengkap · meter tersegel</b>`;}
+$('winBtn').addEventListener('click',()=>location.reload());
+$('bReset').addEventListener('click',()=>location.reload());
+$('bMute').addEventListener('click',()=>{muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';if(muted&&'speechSynthesis'in window)speechSynthesis.cancel();});
+$('bCam').addEventListener('click',()=>{camYaw=Math.PI;camPitch=0.40;camDist=9;toast('Kamera diatur ulang.','');});
+function buildInsight(){const g=$('insGrid');g.innerHTML='';
+  STEPS.forEach((s,i)=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${i+1}. ${s.nm}</b><span class="tag">${s.tag}</span><p>${s.fn}</p><div class="ab"><span class="l2">🧰 Alat:</span> ${s.alat.join(', ')}<br><span class="l">📦 Bahan:</span> ${s.bahan.join(', ')}<br><span style="color:var(--amber)">💡 ${s.tip}</span></div>`;g.appendChild(d);});
+  WIRES.forEach(w=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${w.lab} → ${w.ans}</b><span class="tag">TERMINAL</span><p>${w.edu}</p>`;g.appendChild(d);});
+  APD.forEach(a=>{const d=document.createElement('div');d.className='ins-d';d.innerHTML=`<b>${a.ic} ${a.nm}</b><span class="tag">APD</span><p>${a.fn}</p>`;g.appendChild(d);});}
+$('bInsight').addEventListener('click',()=>{buildInsight();$('insight').style.display='flex';});
+$('insClose').addEventListener('click',()=>$('insight').style.display='none');
+
+try{ if(window.THREE){init();loop();} else {document.body.innerHTML='<div style="color:#fff;padding:40px;font-family:monospace">Gagal memuat Three.js. Periksa koneksi.</div>';} }
+catch(err){console.error(err);}
+</script>
+</body>
+</html>
