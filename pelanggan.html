@@ -166,19 +166,19 @@
     <rect x="34" y="44" width="248" height="60" rx="8" fill="#16202b" stroke="#36588a"/>
     <text x="158" y="38" fill="#8aa2c4" font-size="10" text-anchor="middle" font-family="monospace">BLOK TERMINAL kWh METER</text>
     <!-- ground bar -->
-    <rect x="292" y="56" width="20" height="40" rx="3" fill="#10241a" stroke="#43d17a"/>
+    <rect id="tG" x="292" y="56" width="20" height="40" rx="3" fill="#10241a" stroke="#43d17a"/>
     <text x="302" y="118" fill="#43d17a" font-size="9" text-anchor="middle" font-family="monospace">⏚</text>
-    <!-- terminals -->
+    <!-- terminals (standar kWh 1 fasa PLN: 1-3-4-6) -->
     <g font-family="monospace" font-size="10" text-anchor="middle">
       <circle id="tT1" cx="70"  cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="70"  y="120" fill="#8aa2c4">1</text>
-      <circle id="tT2" cx="124" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="124" y="120" fill="#8aa2c4">2</text>
-      <circle id="tT3" cx="192" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="192" y="120" fill="#8aa2c4">3</text>
-      <circle id="tT4" cx="246" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="246" y="120" fill="#8aa2c4">4</text>
+      <circle id="tT3" cx="124" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="124" y="120" fill="#8aa2c4">3</text>
+      <circle id="tT4" cx="178" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="178" y="120" fill="#8aa2c4">4</text>
+      <circle id="tT6" cx="232" cy="92" r="9" fill="#0c1118" stroke="#5a6678" stroke-width="2"/><text x="232" y="120" fill="#8aa2c4">6</text>
     </g>
-    <text x="70"  y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">L in</text>
-    <text x="124" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">L out</text>
-    <text x="192" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N in</text>
-    <text x="246" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N out</text>
+    <text x="70"  y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">F masuk</text>
+    <text x="124" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">F keluar</text>
+    <text x="178" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N masuk</text>
+    <text x="232" y="136" fill="#5d749a" font-size="8" text-anchor="middle" font-family="monospace">N keluar</text>
     <g id="wirePaths"></g>
   </svg>
   <div id="wList"></div>
@@ -257,9 +257,9 @@ const STEPS=[
    q:'APP (Alat Pengukur & Pembatas) terdiri dari…',
    opt:['kWh meter + MCB pembatas','Trafo + arrester','FCO + isolator'], ans:0},
   {id:'wiring', nm:'Wiring Terminal kWh Meter', tag:'WIRING', workH:0, type:'wire',
-   fn:'Klik meter untuk zoom-in. Sambungkan: FASA dari SR ke T1, FASA keluar ke MCB dari T2, NETRAL masuk ke T3, NETRAL keluar ke T4. Arde (PE) ke batang pentanahan — bukan terminal meter.',
+   fn:'Klik meter untuk zoom-in. Standar terminal kWh 1 fasa PLN: FASA dari SR ke Terminal 1, FASA keluar ke MCB dari Terminal 3, NETRAL masuk ke Terminal 4, NETRAL keluar ke Terminal 6. Arde (PE) ke bar pentanahan — bukan terminal meter. Wiring salah = energi tak tercatat (NTL).',
    alat:['Obeng terminal','Tang potong/kupas','Tespen'], bahan:['Kabel jumper','Skun / sepatu kabel'],
-   tip:'Urutan terminal 1-2-3-4: Fasa masuk – Fasa keluar – Netral masuk – Netral keluar.',
+   tip:'Terminal kWh 1 fasa: 1 = fasa masuk · 3 = fasa keluar · 4 = netral masuk · 6 = netral keluar.',
    q:'', opt:[], ans:0},
   {id:'mcb', nm:'Pasang MCB Pembatas & Pentanahan', tag:'PROTEKSI', workH:0, type:'quizhold',
    fn:'Pasang MCB pembatas sesuai daya (1300 VA ≈ 6 A) pada keluaran fasa, lalu hubungkan penghantar arde (PE) ke batang pentanahan rumah.',
@@ -281,20 +281,20 @@ const APD=[
   {id:'sepatu',ic:'🥾',nm:'Sepatu Safety',fn:'Sepatu dielektrik, lindungi dari kejut & benda jatuh.',part:'pBoots'},
   {id:'rompi',ic:'🦺',nm:'Rompi / Wearpack',fn:'Identitas petugas & pelindung tubuh.',part:'pBody'},
 ];
-// wiring connections: tiap penghantar → terminal yang benar
+// wiring connections — standar terminal kWh meter 1 fasa PLN: 1-3-4-6
+// (1 fasa masuk · 3 fasa keluar · 4 netral masuk · 6 netral keluar)
 const WIRES=[
   {id:'f1', lab:'FASA (L) dari SR', col:'#ff5a52', term:'T1', termX:70,
-   opts:['T1','T2','T3'], ans:'T1', edu:'Penghantar fasa dari SR masuk ke Terminal 1 (L in).'},
-  {id:'fo', lab:'FASA keluar ke MCB / instalasi', col:'#ff5a52', term:'T2', termX:124,
-   opts:['T1','T2','T4'], ans:'T2', edu:'Fasa keluar meter (Terminal 2 / L out) menuju MCB pembatas lalu instalasi.'},
-  {id:'n1', lab:'NETRAL (N) dari SR', col:'#4aa3ff', term:'T3', termX:192,
-   opts:['T2','T3','T4'], ans:'T3', edu:'Netral dari SR masuk ke Terminal 3 (N in).'},
-  {id:'no', lab:'NETRAL keluar ke instalasi', col:'#4aa3ff', term:'T4', termX:246,
-   opts:['T3','T4','G'], ans:'T4', edu:'Netral keluar meter (Terminal 4 / N out) ke instalasi pelanggan.'},
-  {id:'pe', lab:'ARDE / PE (hijau-kuning)', col:'#43d17a', term:'G', termX:302,
-   opts:['T1','T4','G'], ans:'G', edu:'Penghantar pembumian (PE) ke batang pentanahan (bar ⏚), bukan terminal pengukur.'},
+   opts:['1','3','4'], ans:'1', edu:'Fasa dari SR masuk ke Terminal 1 (fasa masuk).'},
+  {id:'fo', lab:'FASA keluar ke MCB / instalasi', col:'#ff5a52', term:'T3', termX:124,
+   opts:['1','3','6'], ans:'3', edu:'Fasa keluar meter di Terminal 3 menuju MCB pembatas lalu instalasi.'},
+  {id:'n1', lab:'NETRAL (N) dari SR', col:'#4aa3ff', term:'T4', termX:178,
+   opts:['3','4','6'], ans:'4', edu:'Netral dari SR masuk ke Terminal 4 (netral masuk).'},
+  {id:'no', lab:'NETRAL keluar ke instalasi', col:'#4aa3ff', term:'T6', termX:232,
+   opts:['4','6','⏚'], ans:'6', edu:'Netral keluar meter di Terminal 6 menuju instalasi pelanggan.'},
+  {id:'pe', lab:'ARDE / PE (hijau-kuning)', col:'#43d17a', term:'G', termX:292,
+   opts:['1','6','⏚'], ans:'⏚', edu:'Pembumian (PE) ke bar pentanahan ⏚ — bukan terminal pengukur. Wiring meter salah = energi tak tercatat (NTL).'},
 ];
-const TERMX={T1:70,T2:124,T3:192,T4:246,G:302};
 
 let renderer,scene,camera,clock;
 const canvas=$('c');
@@ -459,7 +459,7 @@ function answer(i,btn){
 }
 
 /* wiring panel */
-function enterWiring(){wireMode=true;$('meter').style.display='block';$('actWrap').style.display='none';$('wirePaths').innerHTML='';$('wDetail').textContent='Pilih terminal yang benar untuk tiap penghantar…';$('wDone').classList.remove('on');WIRES.forEach(w=>w._done=false);buildWList();setStat('WIRING','var(--cyan)');sayInstr('Zoom ke meter. Sambungkan tiap penghantar ke terminal yang benar sesuai urutan 1-2-3-4.');}
+function enterWiring(){wireMode=true;$('meter').style.display='block';$('actWrap').style.display='none';$('wirePaths').innerHTML='';$('wDetail').textContent='Pilih terminal yang benar untuk tiap penghantar…';$('wDone').classList.remove('on');WIRES.forEach(w=>w._done=false);buildWList();setStat('WIRING','var(--cyan)');sayInstr('Zoom ke meter. Sambungkan sesuai standar terminal kWh 1 fasa: 1 fasa masuk · 3 fasa keluar · 4 netral masuk · 6 netral keluar.');}
 function buildWList(){const wrap=$('wList');wrap.innerHTML='';WIRES.forEach(w=>{
   const el=document.createElement('div');el.className='wrow'+(w._done?' done':'');el.id='wr_'+w.id;
   let opts=w.opts.map(o=>`<button class="wopt" data-w="${w.id}" data-o="${o}">${o}</button>`).join('');
@@ -587,7 +587,7 @@ $('apdGo').addEventListener('click',()=>{$('apd').style.display='none';beginGame
 function beginGame(){started=true;updateTasks();updateHUD();setStat('BELUM TERSAMBUNG','var(--red)');$('actWrap').style.display='flex';if(isTouch)$('joy').style.display='block';showCurrentCard();
   sayInstr('Penugasan pasang baru 1300 VA. Jalan ke rumah pelanggan (penanda biru), lalu mulai dari survey titik sambung.');
   toast('Menuju rumah pelanggan (penanda biru).','good');}
-function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Wiring APP: <b>T1-T2-T3-T4 benar</b> · Arde OK<br>K3: <b style="color:var(--green)">APD lengkap · meter tersegel</b>`;}
+function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Wiring APP: <b>terminal 1-3-4-6 benar</b> · Arde OK<br>K3: <b style="color:var(--green)">APD lengkap · meter tersegel</b>`;}
 $('winBtn').addEventListener('click',()=>location.reload());
 $('bReset').addEventListener('click',()=>location.reload());
 $('bMute').addEventListener('click',()=>{muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';if(muted&&'speechSynthesis'in window)speechSynthesis.cancel();});
