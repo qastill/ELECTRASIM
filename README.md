@@ -13,6 +13,7 @@ Enam simulator interaktif tampil sebagai entri **3D** di dalam jalur yang sesuai
 
 | Simulator | Berkas | Jalur |
 |-----------|--------|-------|
+| Instalasi Rumah & Proteksi RCD (wiring PUIL) | `instalasi.html` | 01 · Instalasi Bangunan |
 | SimPLTGU — Konsol Operator PLTGU | `pembangkit.html` | 07 · Pembangkitan & Renewable |
 | Gardu Induk 150/20 kV — POV & Misi K3 | `transmisi.html` | 04 · Transmisi |
 | SimDispatch — Pengatur Beban (P2B) | `dispatch.html` | 04 · Transmisi |
