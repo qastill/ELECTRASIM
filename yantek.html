@@ -275,6 +275,25 @@ const GARDU=[
    edu:'Pengaman lebur jurusan TR. NH Fuse R putus → jurusan R padam. Ganti dengan rating yang sama, jangan diakali.'},
 ];
 
+/* ===== VARIASI GANGGUAN ACAK (audit: replayability diagnosa) ===== */
+var PHN=['R','S','T']; var FAULTPH=Math.floor(Math.random()*3); var FPN=PHN[FAULTPH];
+var BEBAN_OK='R: 171 A · S: 175 A · T: 168 A';
+(function(){
+  var amps=[171,175,168];
+  var beban=GARDU.find(function(x){return x.id==='beban';});
+  var nh=GARDU.find(function(x){return x.id==='nh';});
+  if(beban){beban.read=PHN.map(function(p,i){return p+': '+(i===FAULTPH?'0':amps[i])+' A';}).join(' · ');
+    beban.edu='Arus fasa '+FPN+' = 0 A → jurusan/fuse '+FPN+' lepas. Bandingkan antar fasa untuk deteksi NH Fuse putus.';}
+  if(nh){nh.read=PHN.map(function(p,i){return 'Fasa '+p+': '+(i===FAULTPH?'PUTUS ⚠':'baik');}).join(' · ');
+    nh.edu='Pengaman lebur jurusan TR. NH Fuse '+FPN+' putus → jurusan '+FPN+' padam. Ganti dengan rating yang sama, jangan diakali.';}
+  var causes=[{nm:'bangkai ular',kw:'binatang'},{nm:'ranting pohon tumbang',kw:'pohon/ranting'},{nm:'layangan berkawat',kw:'benda asing'},{nm:'sarang burung',kw:'binatang'}];
+  var cz=causes[Math.floor(Math.random()*causes.length)];
+  var idf=STEPS.find(function(s){return s.id==='identifikasi';});
+  if(idf){ idf.fn='Konduktor SUTM satu fasa putus & menjuntai, ada '+cz.nm+' tersangkut di travers serta bekas flashover pada isolator.';
+    idf.q='Konduktor putus + '+cz.nm+' di travers + isolator gosong. Penyebab gangguan paling mungkin…';
+    idf.opt=['Beban lebih pada trafo','Hubung singkat fasa-tanah akibat '+cz.kw,'Faktor daya rendah']; idf.ans=1; }
+})();
+
 let renderer,scene,camera,clock;
 const canvas=$('c');
 const POLE={x:0,z:0,top:9.4};
@@ -397,7 +416,7 @@ function buildGardu(){
   [-0.3,0,0.3].forEach(o=>{const bsh=cyl(0.05,0.07,0.4,0x8a6a40,10);bsh.position.set(GD.x+o,3.5,GD.z+0.1);garduGroup.add(bsh);});
   // LV bushings + PHB-TR box (with NH fuses)
   const lvbox=box(0.7,1.0,0.4,0x9aa0a6,{metalness:.2});lvbox.position.set(GD.x-1.3,2.2,GD.z+0.2);garduGroup.add(lvbox);
-  garduGroup.nh=[];[-0.2,0,0.2].forEach((o,i)=>{const f=box(0.12,0.3,0.12,i===0?0x8a3030:0x2c2c30);f.position.set(GD.x-1.3+o,2.2,GD.z+0.42);garduGroup.add(f);garduGroup.nh.push(f);});
+  garduGroup.nh=[];[-0.2,0,0.2].forEach((o,i)=>{const f=box(0.12,0.3,0.12,i===FAULTPH?0x8a3030:0x2c2c30);f.position.set(GD.x-1.3+o,2.2,GD.z+0.42);garduGroup.add(f);garduGroup.nh.push(f);});
   // FCO/cut-out TM (3)
   [-0.3,0,0.3].forEach(o=>{const ins=cyl(0.05,0.06,0.5,0x7a5a36,10);ins.position.set(GD.x+o,5.1,GD.z);ins.rotation.z=0.35;garduGroup.add(ins);const tube=cyl(0.045,0.045,0.55,0x2a2d31,8);tube.position.set(GD.x+o+0.08,5.25,GD.z);tube.rotation.z=0.35;garduGroup.add(tube);});
   // arresters
@@ -486,14 +505,14 @@ function enterInspect(){inspectMode=true;garduFixed=false;$('gardu').style.displ
 function buildGList(){const w=$('gList');w.innerHTML='';GARDU.forEach(g=>{const el=document.createElement('div');el.className='gcomp'+(g.id==='nh'&&g.st==='bad'?' bad':'')+(g._fixed?' fixed':'');el.id='g_'+g.id;
   const stc=g._fixed?'ok':g.st;const lbl=g._fixed?'OK':(g.st==='ok'?'OK':g.st==='bad'?'GANGGUAN':'PERIKSA');
   el.innerHTML=`<span class="gn">${g.nm}</span><span class="gst ${stc}">${lbl}</span>`;el.addEventListener('click',()=>selComp(g));w.appendChild(el);});}
-function selComp(g){gSel=g;$('gDetail').innerHTML=`<div class="rd">${g._fixed?'Fasa R: NORMAL · S: baik · T: baik':g.read}</div><div style="margin-top:5px">${g.edu}</div>`;
-  if(g.id==='nh'&&!g._fixed){$('gFix').style.display='block';$('gFix').textContent='🔧 GANTI NH FUSE R';}
+function selComp(g){gSel=g;$('gDetail').innerHTML=`<div class="rd">${g._fixed?('Fasa '+FPN+': NORMAL · '+BEBAN_OK):g.read}</div><div style="margin-top:5px">${g.edu}</div>`;
+  if(g.id==='nh'&&!g._fixed){$('gFix').style.display='block';$('gFix').textContent='🔧 GANTI NH FUSE '+FPN;}
   else $('gFix').style.display='none';
 }
 $('gFix').addEventListener('click',()=>{ if(gSel&&gSel.id==='nh'){gSel._fixed=true;garduFixed=true;
-  const bb=GARDU.find(x=>x.id==='beban');if(bb)bb.read='R: 171 A · S: 175 A · T: 168 A';
-  if(garduGroup&&garduGroup.nh&&garduGroup.nh[0])garduGroup.nh[0].material.color.setHex(0x2c2c30);
-  buildGList();selComp(gSel);toast('✔ NH Fuse R diganti — jurusan R pulih.','good');sayInstr('NH Fuse R diganti dengan rating sama. Arus fasa R kembali normal.');$('gDone').classList.add('on');}});
+  const bb=GARDU.find(x=>x.id==='beban');if(bb)bb.read=BEBAN_OK;
+  if(garduGroup&&garduGroup.nh&&garduGroup.nh[FAULTPH])garduGroup.nh[FAULTPH].material.color.setHex(0x2c2c30);
+  buildGList();selComp(gSel);toast('✔ NH Fuse '+FPN+' diganti — jurusan '+FPN+' pulih.','good');sayInstr('NH Fuse '+FPN+' diganti dengan rating sama. Arus fasa '+FPN+' kembali normal.');$('gDone').classList.add('on');}});
 $('gDone').addEventListener('click',()=>{ if(!garduFixed){toast('Temukan & ganti dulu komponen yang bermasalah.','bad');return;} inspectMode=false;$('gardu').style.display='none';$('actWrap').style.display='flex';const s=curS();finishStep(s);});
 
 /* hold-to-work */
@@ -608,7 +627,7 @@ $('apdGo').addEventListener('click',()=>{$('apd').style.display='none';beginGame
 function beginGame(){started=true;updateTasks();updateHUD();setStat('PADAM','var(--red)');$('actWrap').style.display='flex';if(isTouch)$('joy').style.display='block';showCurrentCard();
   sayInstr('Penyulang trip, sebagian pelanggan padam. Susuri jaringan menuju tiang gangguan yang ditandai cincin biru, lalu periksa kondisinya.');
   toast('Menuju lokasi gangguan (penanda biru).','good');}
-function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Gangguan: <b>SUTM putus (binatang) + NH Fuse R putus</b><br>K3: <b style="color:var(--green)">APD lengkap · pembumian lokal</b>`;}
+function showWin(){$('win').style.display='flex';$('winStats').innerHTML=`Langkah selesai: <b>${STEPS.length}/${STEPS.length}</b><br>Gangguan: <b>SUTM putus + NH Fuse ${FPN} putus</b><br>K3: <b style="color:var(--green)">APD lengkap · pembumian lokal</b>`;}
 $('winBtn').addEventListener('click',()=>location.reload());
 $('bReset').addEventListener('click',()=>location.reload());
 $('bMute').addEventListener('click',()=>{muted=!muted;$('bMute').textContent=muted?'🔇':'🔊';if(muted&&'speechSynthesis'in window)speechSynthesis.cancel();});
