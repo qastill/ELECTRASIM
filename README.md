@@ -10,6 +10,7 @@ Dibagi menjadi tiga tahap rantai pasok tenaga listrik:
 | 2 | **Transmisi** — SimDispatch: konsol Pusat Pengatur Beban (P2B) Jamali, economic dispatch & merit order, kendali frekuensi/cadangan (N-1). | `dispatch.html` | ✅ Siap |
 | 3 | **Distribusi** — Konstruksi SUTM 20 kV: game 3D orang-pertama — kenakan APD, panjat tiang, kuis tiap langkah, pasang travers/isolator/konduktor/proteksi/grounding hingga energize. | `distribusi.html` | ✅ Siap |
 | 3 | **Distribusi** — Yantek (Pelayanan Teknik): penanganan gangguan SUTM (kabel putus akibat binatang) + inspeksi gardu zoom-in & ganti NH Fuse, lalu penormalan tegangan. | `yantek.html` | ✅ Siap |
+| 3 | **Distribusi** — Sambungan Pelanggan & Wiring APP: pasang baru 1300 VA — tarik SR, pasang kWh meter, **klik meter untuk zoom-in & wiring terminal**, MCB pembatas, pentanahan, segel & energize. | `pelanggan.html` | ✅ Siap |
 
 `index.html` adalah halaman menu utama yang menautkan ketiga modul di atas.
 
