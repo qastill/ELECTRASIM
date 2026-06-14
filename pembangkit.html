@@ -1079,5 +1079,73 @@ logEvent('SimPLTGU daring — PLTGU combined-cycle, interkoneksi 50 Hz Jawa-Bali
 logEvent('Cold start selesai. AUTO CTL aktif.','good');
 requestAnimationFrame(loop);
 </script>
+<!-- ===== LAPISAN BELAJAR (audit kurikulum) ===== -->
+<style>
+.lrn-fab{position:fixed;right:14px;bottom:14px;z-index:140;background:#16315a;border:1px solid #2b6fd6;color:#8fd0ff;font-family:ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:1px;padding:9px 14px;border-radius:10px;cursor:pointer;box-shadow:0 6px 18px #0007}
+.lrn-fab:hover{background:#1d3f72}
+.lrn-ov{position:fixed;inset:0;z-index:240;background:#020713e0;display:none;align-items:center;justify-content:center;padding:18px}
+.lrn-ov.show{display:flex}
+.lrn-card{max-width:560px;width:100%;max-height:88vh;overflow:auto;background:linear-gradient(180deg,#0e1f3c,#0a1628);border:1px solid #36588a;border-radius:14px;padding:18px 20px;font-family:system-ui,-apple-system,sans-serif;color:#cfe0f5}
+.lrn-card h2{margin:0;color:#8fd0ff;font-size:17px}
+.lrn-sub{font-size:11px;color:#5d749a;margin-bottom:10px}
+.lrn-tabs{display:flex;gap:6px;margin:10px 0 14px}
+.lrn-tab{flex:1;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;padding:8px 4px;border-radius:8px;border:1px solid #244168;background:#0e1f3a;color:#8aa2c4;cursor:pointer}
+.lrn-tab.on{background:linear-gradient(180deg,#3f86e6,#2b6fd6);color:#fff;border-color:#6fa8ef}
+.lrn-li{font-size:13px;line-height:1.55;color:#cbd5e0;margin:7px 0;padding-left:22px;position:relative}
+.lrn-li:before{content:"🎯";position:absolute;left:0}.lrn-li.rc:before{content:"⚡"}
+.lrn-q{font-size:15px;font-weight:700;margin:4px 0 10px;color:#eaf0f6}
+.lrn-opt{display:block;width:100%;text-align:left;background:#161d27;border:1px solid #244168;color:#eaf0f6;font-size:14px;font-weight:600;padding:12px 14px;border-radius:10px;margin:7px 0;cursor:pointer}
+.lrn-opt:hover{border-color:#36d1dc}.lrn-opt.ok{border-color:#3ce07a;background:rgba(60,224,122,.12)}.lrn-opt.no{border-color:#ff5a5a;background:rgba(255,90,90,.1)}
+.lrn-exp{font-size:12.5px;color:#aab6c4;line-height:1.5;margin:8px 0;padding:10px;background:#0c1118;border:1px dashed #244168;border-radius:9px;display:none}.lrn-exp.show{display:block}
+.lrn-nav{display:flex;gap:8px;margin-top:12px}
+.lrn-btn{flex:1;font-family:system-ui;font-weight:800;font-size:13px;padding:11px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(180deg,#ffc341,#ff9e16);color:#241400}
+.lrn-btn.sec{background:#16315a;color:#8fd0ff;border:1px solid #2b6fd6}
+.lrn-score{font-size:22px;font-weight:800;color:#3ce07a;text-align:center;margin:10px 0 4px}
+</style>
+<button class="lrn-fab" id="lrnFab">🎓 BELAJAR &amp; UJI</button>
+<div class="lrn-ov" id="lrnOv"><div class="lrn-card">
+  <h2 id="lrnTitle">Modul Belajar</h2><div class="lrn-sub" id="lrnSub"></div>
+  <div class="lrn-tabs"><div class="lrn-tab on" data-t="obj">🎯 TUJUAN</div><div class="lrn-tab" data-t="quiz">🧠 UJI PAHAM</div><div class="lrn-tab" data-t="recap">⚡ REKAP</div></div>
+  <div id="lrnBody"></div>
+  <div class="lrn-nav"><button class="lrn-btn sec" id="lrnClose">TUTUP</button></div>
+</div></div>
+<script>(function(){
+var D={t:'SimPLTGU — Operator PLTGU',s:'Pembangkitan combined-cycle · interkoneksi 50 Hz',auto:true,
+obj:['Menjaga frekuensi sistem terkunci 50 Hz lewat keseimbangan daya.','Membaca tara kalor (heat rate) & efisiensi serta kaitannya ke biaya BBM.','Mengelola keandalan vs beban mekanis (strain) lewat anggaran pemeliharaan.','Menyeimbangkan laba, emisi, dan keandalan pada PLTGU combined-cycle.'],
+recap:['Frekuensi 50 Hz = indikator keseimbangan pasokan & permintaan.','Heat rate makin rendah = makin efisien (BBM per kWh lebih sedikit).','Beban Puncak (peaking): respons cepat tapi tara kalor & strain naik.','Daya neto = daya bruto dikurangi pemakaian sendiri (~5%).','Pemeliharaan tinggi memulihkan keandalan & menekan risiko trip.'],
+qz:[
+{q:'Frekuensi turun di bawah 50 Hz paling menandakan…',opt:['Pasokan lebih besar dari permintaan','Permintaan lebih besar dari pasokan','Faktor daya terlalu tinggi'],a:1,exp:'Frekuensi turun = generasi kurang dari beban; bila di bawah 49,5 Hz berisiko pelepasan beban (UFLS).'},
+{q:'Tara kalor (heat rate) yang makin RENDAH berarti…',opt:['Makin boros bahan bakar','Makin efisien','Tidak berpengaruh'],a:1,exp:'Heat rate = energi bahan bakar per kWh; makin rendah makin sedikit BBM untuk listrik yang sama.'},
+{q:'Memilih Mode Beban Puncak (peaking) cenderung…',opt:['Menurunkan strain & emisi','Menaikkan tara kalor & beban mekanis','Tidak mengubah apa pun'],a:1,exp:'Peaking memberi respons cepat tetapi efisiensi turun (heat rate naik) dan strain meningkat.'},
+{q:'Daya NETO yang dijual ke jaringan adalah…',opt:['Daya bruto + pemakaian sendiri','Daya bruto − pemakaian sendiri','Sama dengan daya bruto'],a:1,exp:'Pemakaian sendiri (pompa, kipas) sekitar 4–6% bruto dikurangkan untuk mendapat daya neto.'},
+{q:'Menaikkan anggaran Pemeliharaan berdampak…',opt:['Langsung menambah MW','Memulihkan keandalan & menekan risiko trip','Menaikkan emisi'],a:1,exp:'Pemeliharaan tidak langsung menambah daya, tapi menjaga keandalan & efisiensi jangka panjang.'}
+]};
+var L=function(id){return document.getElementById(id);};
+var tab='obj',qi=0,score=0,answered=false;var ov=L('lrnOv'),body=L('lrnBody');
+L('lrnTitle').textContent=D.t;L('lrnSub').textContent=D.s;
+function render(){
+ if(tab==='obj'){body.innerHTML='<div style="font-size:12px;color:#8aa2c4;margin-bottom:8px">Setelah modul ini kamu mampu:</div>'+D.obj.map(function(o){return '<div class="lrn-li">'+o+'</div>';}).join('');}
+ else if(tab==='recap'){body.innerHTML='<div style="font-size:12px;color:#8aa2c4;margin-bottom:8px">Konsep kunci:</div>'+D.recap.map(function(o){return '<div class="lrn-li rc">'+o+'</div>';}).join('');}
+ else renderQuiz();
+}
+function renderQuiz(){
+ if(qi>=D.qz.length){var pct=Math.round(score/D.qz.length*100);
+  body.innerHTML='<div class="lrn-score">Skor '+score+'/'+D.qz.length+' · '+pct+'%</div><div style="text-align:center;font-size:13px;color:#aab6c4;margin-bottom:10px">'+(pct>=80?'👏 Paham baik!':pct>=50?'Lumayan — ulangi yang salah.':'Pelajari lagi Tujuan & Rekap, lalu ulangi.')+'</div><button class="lrn-btn" id="lrnRetry">↻ ULANGI UJI</button>';
+  L('lrnRetry').onclick=function(){qi=0;score=0;renderQuiz();};
+  try{var k='esim_quiz_'+D.t;localStorage.setItem(k,Math.max(+(localStorage.getItem(k)||0),pct));}catch(e){}
+  return;}
+ var q=D.qz[qi];answered=false;
+ body.innerHTML='<div style="font-size:11px;color:#5d749a">Soal '+(qi+1)+'/'+D.qz.length+'</div><div class="lrn-q">'+q.q+'</div>'+q.opt.map(function(o,i){return '<button class="lrn-opt" data-i="'+i+'">'+o+'</button>';}).join('')+'<div class="lrn-exp" id="lrnExp">'+q.exp+'</div><div class="lrn-nav"><button class="lrn-btn" id="lrnNext" style="display:none">'+(qi===D.qz.length-1?'LIHAT SKOR →':'LANJUT →')+'</button></div>';
+ [].forEach.call(body.querySelectorAll('.lrn-opt'),function(b){b.onclick=function(){if(answered)return;answered=true;var i=+b.dataset.i;
+   if(i===q.a){b.classList.add('ok');score++;}else{b.classList.add('no');var c=body.querySelector('.lrn-opt[data-i="'+q.a+'"]');if(c)c.classList.add('ok');}
+   L('lrnExp').classList.add('show');var n=L('lrnNext');n.style.display='block';n.onclick=function(){qi++;renderQuiz();};};});
+}
+[].forEach.call(document.querySelectorAll('.lrn-tab'),function(t){t.onclick=function(){[].forEach.call(document.querySelectorAll('.lrn-tab'),function(x){x.classList.remove('on');});t.classList.add('on');tab=t.dataset.t;if(tab==='quiz'){qi=0;score=0;}render();};});
+function open(){ov.classList.add('show');tab='obj';[].forEach.call(document.querySelectorAll('.lrn-tab'),function(x){x.classList.toggle('on',x.dataset.t==='obj');});render();}
+L('lrnFab').onclick=open;L('lrnClose').onclick=function(){ov.classList.remove('show');};
+ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('show');});
+try{if(D.auto&&!sessionStorage.getItem('lrn_'+D.t)){sessionStorage.setItem('lrn_'+D.t,'1');setTimeout(open,700);}}catch(e){}
+render();
+})();</script>
 </body>
 </html>
