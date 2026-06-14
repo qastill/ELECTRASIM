@@ -17,7 +17,9 @@ Dibagi menjadi tiga tahap rantai pasok tenaga listrik:
 `vr3d/` berisi app **ElectraSim VR 3D — 16 Jalur Ketenagalistrikan** (32 misi dalam satu mesin 3D):
 Instalasi Bangunan, Industri & Manufaktur, Distribusi, Transmisi, Energy Analyst, Energy Auditor,
 Pembangkitan & Renewable, K3 Listrik, Sales, PV/Solar, Sustainability, EV Charging, Waste to Energy,
-Hydrogen, BESS, dan Kontrol & Otomasi. Dimuat dari `vr3d/index.html` (di-link dari menu utama).
+Hydrogen, BESS, dan Kontrol & Otomasi. Dimuat dari `vr3d/index.html` (di-link dari menu utama). Misi tiap jalur **berjenjang**:
+misi terkunci 🔒 sampai misi sebelumnya selesai (M1→M8), dan "Misi Berikutnya" melanjutkan
+sampai tuntas. Progres tersimpan di `localStorage`.
 Materi wiring kWh meter (standar terminal 1-3-4-6) pada modul Sambungan Pelanggan diselaraskan dengan app ini.
 
 `index.html` adalah halaman menu utama yang menautkan modul-modul di atas + app VR 3D.
