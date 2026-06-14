@@ -17,6 +17,7 @@ Enam simulator interaktif tampil sebagai entri **3D** di dalam jalur yang sesuai
 | SimPLTGU — Konsol Operator PLTGU | `pembangkit.html` | 07 · Pembangkitan & Renewable |
 | Gardu Induk 150/20 kV — POV & Misi K3 | `transmisi.html` | 04 · Transmisi |
 | SimDispatch — Pengatur Beban (P2B) | `dispatch.html` | 04 · Transmisi |
+| SimProteksi — Koordinasi Relai OCR (IDMT, selektivitas) | `proteksi.html` | 04 · Transmisi |
 | Konstruksi SUTM 20 kV | `distribusi.html` | 03 · Distribusi |
 | Yantek — Penanganan Gangguan | `yantek.html` | 03 · Distribusi |
 | Sambungan Pelanggan & Wiring APP (kWh 1-3-4-6) | `pelanggan.html` | 03 · Distribusi |
