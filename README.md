@@ -12,7 +12,15 @@ Dibagi menjadi tiga tahap rantai pasok tenaga listrik:
 | 3 | **Distribusi** — Yantek (Pelayanan Teknik): penanganan gangguan SUTM (kabel putus akibat binatang) + inspeksi gardu zoom-in & ganti NH Fuse, lalu penormalan tegangan. | `yantek.html` | ✅ Siap |
 | 3 | **Distribusi** — Sambungan Pelanggan & Wiring APP: pasang baru 1300 VA — tarik SR, pasang kWh meter, **klik meter untuk zoom-in & wiring terminal**, MCB pembatas, pentanahan, segel & energize. | `pelanggan.html` | ✅ Siap |
 
-`index.html` adalah halaman menu utama yang menautkan ketiga modul di atas.
+### Mode Eksplorasi — ElectraSim VR 3D (16 Jalur)
+
+`vr3d/` berisi app **ElectraSim VR 3D — 16 Jalur Ketenagalistrikan** (32 misi dalam satu mesin 3D):
+Instalasi Bangunan, Industri & Manufaktur, Distribusi, Transmisi, Energy Analyst, Energy Auditor,
+Pembangkitan & Renewable, K3 Listrik, Sales, PV/Solar, Sustainability, EV Charging, Waste to Energy,
+Hydrogen, BESS, dan Kontrol & Otomasi. Dimuat dari `vr3d/index.html` (di-link dari menu utama).
+Materi wiring kWh meter (standar terminal 1-3-4-6) pada modul Sambungan Pelanggan diselaraskan dengan app ini.
+
+`index.html` adalah halaman menu utama yang menautkan modul-modul di atas + app VR 3D.
 
 ## Menjalankan
 
